@@ -520,6 +520,14 @@
                 content: "" !important;
                 display: none !important;
             }
+            .sig-name-blank:empty::after {
+                content: "( .................................... )" !important;
+                display: block !important;
+                font-weight: 700 !important;
+                color: #000000 !important;
+                font-style: normal !important;
+                text-decoration: none !important;
+            }
             .snk-content {
                 border: none !important;
                 background-color: transparent !important;
@@ -606,7 +614,7 @@
                             <option value="sj">🚚 Surat Jalan / DO (Tanpa Harga • TTD 3 Pihak)</option>
                             <option value="kwitansi">🧾 Kwitansi (Tanda Terima Pembayaran)</option>
                             <option value="bundle">📑 Bundle Kwitansi &amp; Invoice (2 Halaman A4)</option>
-                            <option value="quotation">💼 Surat Penawaran Harga / Quotation</option>
+                            <option value="quotation">💼 Surat Penawaran / Quotation</option>
                             <option value="po">🛒 Purchase Order / PO</option>
                         </select>
                     </div>
@@ -652,7 +660,7 @@
                         <div class="flex items-center gap-2">
                             <input type="file" id="stampUploadInput" accept="image/*" onchange="handleCustomStampUpload(event)" class="w-full text-[11px] text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-lg p-1 bg-white">
                         </div>
-                        <p class="text-[10px] text-slate-500">Unggah file PNG transparan stempel Anda atau gunakan stempel resmi bawaan.</p>
+                        <p class="text-[10px] text-slate-500">Unggah file PNG transparan stempel Anda atau gunakan tombol upload di kertas.</p>
                     </div>
 
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
@@ -852,11 +860,11 @@
             showFakturPajak: true,
             showNoSJ: true,
 
-            showColMaterial: true,
+            showColMaterial: false,
             showColUnit: true,
             showColSpec: true,
 
-            showCatatanSJ: true,
+            showCatatanSJ: false,
             showTtd3Pihak: true,
 
             showBankBox: true,
@@ -867,7 +875,7 @@
             showRowPpn: true,
             showRowGrandTotal: true,
 
-            showSnK: true,
+            showSnK: false,
             showSignature: true,
             showStamp: true
         };
@@ -898,9 +906,9 @@
             quotationLeadTime: "",
             quotationPaymentTerms: "",
 
-            colDescTitle: "Deskripsi Komponen & Jasa Pengecoran",
+            colDescTitle: "Deskripsi",
 
-            bankBoxTitle: "INFORMASI PEMBAYARAN & JAMINAN MUTU (QC):",
+            bankBoxTitle: "INFORMASI PEMBAYARAN",
             bankName: "Bank Rakyat Indonesia (BRI) - Cabang Klaten",
             bankRek: "003501003583303 a.n PT SAHALA PRIMA UTAMA",
             bankWa: "0858 6660 5978 / 0821 1089 9534",
@@ -949,39 +957,22 @@
             }
         }
 
-        function createDefaultStampSVG(companyName) {
-            const cleanName = (companyName || 'PT SAHALA PRIMA UTAMA').toUpperCase();
-            return `
-            <svg width="112" height="112" viewBox="0 0 120 120" class="stamp-container-img">
-                <defs>
-                    <path id="stampCircleTop" d="M 22,60 A 38,38 0 1,1 98,60" />
-                    <path id="stampCircleBottom" d="M 98,60 A 38,38 0 1,1 22,60" />
-                </defs>
-                <circle cx="60" cy="60" r="52" fill="none" stroke="#1d4ed8" stroke-width="3"/>
-                <circle cx="60" cy="60" r="47" fill="none" stroke="#1d4ed8" stroke-width="1"/>
-                <circle cx="60" cy="60" r="27" fill="none" stroke="#1d4ed8" stroke-width="1.5"/>
-                <text fill="#1d4ed8" font-size="8" font-weight="bold" font-family="Arial, sans-serif" letter-spacing="1.2">
-                    <textPath href="#stampCircleTop" startOffset="50%" text-anchor="middle">${cleanName}</textPath>
-                </text>
-                <text fill="#1d4ed8" font-size="7.5" font-weight="bold" font-family="Arial, sans-serif" letter-spacing="1.5">
-                    <textPath href="#stampCircleBottom" startOffset="50%" text-anchor="middle">★ KLATEN - INDONESIA ★</textPath>
-                </text>
-                <line x1="15" y1="51" x2="105" y2="51" stroke="#1d4ed8" stroke-width="1.2"/>
-                <line x1="15" y1="69" x2="105" y2="69" stroke="#1d4ed8" stroke-width="1.2"/>
-                <text x="60" y="63" font-family="Arial, sans-serif" font-size="8.5" font-weight="800" fill="#1d4ed8" text-anchor="middle">VERIFIED</text>
-            </svg>`;
-        }
-
         function getActiveStampHTML() {
             if (!displayConfig.showStamp) return '';
             if (customStampDataUrl) {
-                return `<img src="${customStampDataUrl}" alt="Stempel Perusahaan" class="stamp-container-img">`;
+                return `
+                <div class="relative flex items-center justify-center w-full h-full group">
+                    <img src="${customStampDataUrl}" alt="Stempel Perusahaan" class="stamp-container-img">
+                    <button type="button" onclick="document.getElementById('stampUploadInput').click()" class="no-print absolute -top-1 -right-1 w-6 h-6 bg-white border border-slate-300 rounded-full shadow-sm hover:bg-slate-100 text-indigo-600 text-xs flex items-center justify-center transition cursor-pointer" title="Ganti file stempel">✎</button>
+                </div>`;
             }
-            if (currentEntityKey === 'arba') {
-                return createDefaultStampSVG('ARBA INDAH LOGAM');
-            } else {
-                return `<img src="TTD Sahala Siti Zubaedah-remove backgound.png" alt="Stempel Sahala" class="stamp-container-img">`;
-            }
+            return `
+            <div class="no-print flex items-center justify-center w-full h-full">
+                <button type="button" onclick="document.getElementById('stampUploadInput').click()" class="inline-flex items-center gap-1 px-3 py-1 text-[11px] font-semibold text-slate-500 hover:text-indigo-600 border border-dashed border-slate-300 hover:border-indigo-400 rounded-lg bg-slate-50/70 hover:bg-indigo-50/70 transition cursor-pointer shadow-sm" title="Unggah file stempel / cap lokal">
+                    <span class="text-sm font-bold leading-none">+</span>
+                    <span>Upload Cap</span>
+                </button>
+            </div>`;
         }
 
         function toggleChecklistAccordion() {
@@ -1175,7 +1166,7 @@
                     sj: 'Surat Jalan (DO)',
                     kwitansi: 'Kwitansi Resmi',
                     bundle: 'Bundle (Inv + Kwitansi)',
-                    quotation: 'Surat Penawaran Harga',
+                    quotation: 'Surat Penawaran',
                     po: 'Purchase Order'
                 };
                 badge.textContent = labels[currentDocType] || 'Dokumen';
@@ -1299,7 +1290,7 @@
                 </div>
 
                 <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
-                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">C. Kolom Tabel Penawaran</div>
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">C. Kolom Tabel Surat Penawaran</div>
                     <label class="flex items-center gap-2 cursor-pointer select-none">
                         <input type="checkbox" ${displayConfig.showColMaterial ? 'checked' : ''} onchange="updateDisplayOption('showColMaterial', this.checked)" class="accent-indigo-600 rounded">
                         <span>Kolom Material/Grade</span>
@@ -1904,14 +1895,14 @@
                         <div style="font-weight:700;">Driver / Ekspedisi</div>
                         <div style="font-size:8pt;">Pembawa Barang</div>
                         <div class="sig-space"></div>
-                        <div class="sig-name" contenteditable="true" data-placeholder="(Nama Driver)" onblur="handleDocDataEdit('sjDriverName', this.innerText, this)">${docData.sjDriverName || ''}</div>
+                        <div class="sig-name sig-name-blank" contenteditable="true" data-placeholder="(Nama Driver)" onblur="handleDocDataEdit('sjDriverName', this.innerText, this)">${docData.sjDriverName || ''}</div>
                         <div contenteditable="true" data-placeholder="Driver / Ekspedisi" onblur="handleDocDataEdit('sjDriverNote', this.innerText, this)">${docData.sjDriverNote || ''}</div>
                     </div>
                     <div>
                         <div style="font-weight:700;">Penerima Barang</div>
                         <div style="font-size:8pt;">Pihak Proyek / Klien</div>
                         <div class="sig-space"></div>
-                        <div class="sig-name" contenteditable="true" data-placeholder="(Nama Penerima)" onblur="handleDocDataEdit('sjPenerimaName', this.innerText, this)">${docData.sjPenerimaName || ''}</div>
+                        <div class="sig-name sig-name-blank" contenteditable="true" data-placeholder="(Nama Penerima)" onblur="handleDocDataEdit('sjPenerimaName', this.innerText, this)">${docData.sjPenerimaName || ''}</div>
                         <div contenteditable="true" data-placeholder="Tanda Tangan &amp; Cap Proyek" onblur="handleDocDataEdit('sjPenerimaNote', this.innerText, this)">${docData.sjPenerimaNote || ''}</div>
                     </div>
                 </div>` : ''}
@@ -2064,7 +2055,7 @@
             } else if (currentDocType === 'quotation') {
                 host.innerHTML = `
                 <div class="a4-sheet">
-                    ${buildHeaderHTML('SURAT PENAWARAN HARGA', 'quotation')}
+                    ${buildHeaderHTML('SURAT PENAWARAN', 'quotation')}
                     ${buildMidInfoGridHTML()}
                     ${buildItemsTableHTML(calc)}
                     ${buildSummaryAndTotalsHTML(calc)}
@@ -2156,28 +2147,31 @@
             currentDocType = newType;
             if (newType === 'sj') {
                 docData.docTitle = "SURAT JALAN / DO";
-                if (!docData.noSuratJalan) {
-                    docData.noSuratJalan = generateDocNumber('sj', currentEntityKey);
-                }
+                docData.noSuratJalan = generateDocNumber('sj', currentEntityKey);
             } else if (newType === 'kwitansi') {
                 docData.docTitle = "KWITANSI";
+                docData.noSuratJalan = "";
                 if (!docData.kwitansiNo) {
                     docData.kwitansiNo = generateDocNumber('kwitansi', currentEntityKey);
                 }
             } else if (newType === 'quotation') {
-                docData.docTitle = "SURAT PENAWARAN HARGA";
+                docData.docTitle = "SURAT PENAWARAN";
+                docData.noSuratJalan = "";
                 if (!docData.quotationNo) {
                     docData.quotationNo = generateDocNumber('quotation', currentEntityKey);
                 }
             } else if (newType === 'po') {
                 docData.docTitle = "PURCHASE ORDER";
+                docData.noSuratJalan = "";
                 docData.noDokumen = generateDocNumber('po', currentEntityKey);
             } else if (newType === 'bundle') {
                 docData.docTitle = "INVOICE";
+                docData.noSuratJalan = "";
                 docData.noDokumen = generateDocNumber('invoice', currentEntityKey);
                 docData.kwitansiNo = generateDocNumber('kwitansi', currentEntityKey);
             } else {
                 docData.docTitle = "INVOICE";
+                docData.noSuratJalan = "";
                 docData.noDokumen = generateDocNumber('invoice', currentEntityKey);
             }
             renderAdaptiveChecklists();
@@ -2212,7 +2206,7 @@
                 }
             }
 
-            if (key === 'noDokumen' || key === 'noPO' || key === 'noSuratJalan' || key === 'clientName' || key === 'jatuhTempo' || key === 'noFakturPajak' || key === 'quotationValidity' || key === 'quotationPerihal') {
+            if (key === 'noDokumen' || key === 'noPO' || key === 'noSuratJalan' || key === 'clientName' || key === 'jatuhTempo' || key === 'noFakturPajak' || key === 'quotationValidity' || key === 'quotationPerihal' || key === 'sjDriverName' || key === 'sjPenerimaName') {
                 renderDocumentView();
             }
         }
@@ -2328,7 +2322,7 @@
 
             docData.noDokumen = generateDocNumber(currentDocType, currentEntityKey);
             if (docData.quotationNo) docData.quotationNo = generateDocNumber('quotation', currentEntityKey);
-            if (docData.noSuratJalan) docData.noSuratJalan = generateDocNumber('sj', currentEntityKey);
+            docData.noSuratJalan = (currentDocType === 'sj') ? generateDocNumber('sj', currentEntityKey) : "";
             if (docData.kwitansiNo) docData.kwitansiNo = generateDocNumber('kwitansi', currentEntityKey);
 
             const taxSelect = document.getElementById('taxSchemeSelect');
@@ -2361,7 +2355,7 @@
             const fileInput = document.getElementById('stampUploadInput');
             if (fileInput) fileInput.value = "";
             renderDocumentView();
-            showToast("Stempel dikembalikan ke versi bawaan resmi.");
+            showToast("Stempel dikembalikan ke kondisi bersih.");
         }
 
         function toggleStampDisplay() {
@@ -2409,7 +2403,7 @@
                 <tr>
                     <td style="border:1px solid #000; text-align:center;">${idx + 1}</td>
                     <td style="border:1px solid #000; font-weight:bold;">${item.name || '-'}<br><small style="font-weight:normal;">${item.spec || ''}</small></td>
-                    <td style="border:1px solid #000; text-align:center;">${item.material || '-'}</td>
+                    ${displayConfig.showColMaterial ? `<td style="border:1px solid #000; text-align:center;">${item.material || '-'}</td>` : ''}
                     <td style="border:1px solid #000; text-align:center; font-weight:bold;">${formatNumberThousand(item.qty)}</td>
                     <td style="border:1px solid #000; text-align:center;">${item.unit || '-'}</td>
                     <td style="border:1px solid #000; text-align:center;">Baik &amp; Lengkap</td>
@@ -2420,8 +2414,8 @@
                     <thead>
                         <tr style="background:#1e293b; color:#fff;">
                             <th style="border:1px solid #000; padding:6px;">No</th>
-                            <th style="border:1px solid #000; padding:6px;">Deskripsi Barang</th>
-                            <th style="border:1px solid #000; padding:6px;">Material/Grade</th>
+                            <th style="border:1px solid #000; padding:6px;">Deskripsi</th>
+                            ${displayConfig.showColMaterial ? `<th style="border:1px solid #000; padding:6px;">Material/Grade</th>` : ''}
                             <th style="border:1px solid #000; padding:6px;">Qty</th>
                             <th style="border:1px solid #000; padding:6px;">Satuan</th>
                             <th style="border:1px solid #000; padding:6px;">Kondisi</th>
@@ -2434,7 +2428,7 @@
                 <tr>
                     <td style="border:1px solid #000; text-align:center;">${idx + 1}</td>
                     <td style="border:1px solid #000; font-weight:bold;">${item.name || '-'}<br><small style="font-weight:normal;">${item.spec || ''}</small></td>
-                    <td style="border:1px solid #000; text-align:center;">${item.material || '-'}</td>
+                    ${displayConfig.showColMaterial ? `<td style="border:1px solid #000; text-align:center;">${item.material || '-'}</td>` : ''}
                     <td style="border:1px solid #000; text-align:center;">${formatNumberThousand(item.qty)}</td>
                     <td style="border:1px solid #000; text-align:center;">${item.unit || '-'}</td>
                     <td style="border:1px solid #000; text-align:right;">${formatRupiah(item.price)}</td>
@@ -2443,7 +2437,7 @@
 
                 let feeRows = '';
                 additionalFees.forEach(fee => {
-                    feeRows += `<tr><td colspan="6" style="border:1px solid #000; text-align:right;">${fee.label}:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(fee.amount)}</td></tr>`;
+                    feeRows += `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">${fee.label}:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(fee.amount)}</td></tr>`;
                 });
 
                 tableHtml = `
@@ -2451,8 +2445,8 @@
                     <thead>
                         <tr style="background:#1e293b; color:#fff;">
                             <th style="border:1px solid #000; padding:6px;">No</th>
-                            <th style="border:1px solid #000; padding:6px;">Deskripsi Komponen &amp; Jasa</th>
-                            <th style="border:1px solid #000; padding:6px;">Material/Grade</th>
+                            <th style="border:1px solid #000; padding:6px;">Deskripsi</th>
+                            ${displayConfig.showColMaterial ? `<th style="border:1px solid #000; padding:6px;">Material/Grade</th>` : ''}
                             <th style="border:1px solid #000; padding:6px;">Qty</th>
                             <th style="border:1px solid #000; padding:6px;">Satuan</th>
                             <th style="border:1px solid #000; padding:6px;">Harga Satuan</th>
@@ -2461,12 +2455,12 @@
                     </thead>
                     <tbody>
                         ${rows}
-                        ${additionalFees.length > 0 ? `<tr><td colspan="6" style="border:1px solid #000; text-align:right; font-weight:bold;">Subtotal Barang:</td><td style="border:1px solid #000; text-align:right; font-weight:bold;">${formatRupiah(calc.rawItemsSubtotal)}</td></tr>` : ''}
+                        ${additionalFees.length > 0 ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right; font-weight:bold;">Subtotal Barang:</td><td style="border:1px solid #000; text-align:right; font-weight:bold;">${formatRupiah(calc.rawItemsSubtotal)}</td></tr>` : ''}
                         ${feeRows}
-                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="6" style="border:1px solid #000; text-align:right;">Total:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.subtotalAfterFees)}</td></tr>` : ''}
-                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="6" style="border:1px solid #000; text-align:right;">DPP:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.dpp)}</td></tr>` : ''}
-                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="6" style="border:1px solid #000; text-align:right;">PPN (12%):</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.ppn)}</td></tr>` : ''}
-                        <tr style="background:#f1f5f9; font-weight:bold;"><td colspan="6" style="border:1px solid #000; text-align:right;">GRAND TOTAL:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.grandTotal)}</td></tr>
+                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">Total:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.subtotalAfterFees)}</td></tr>` : ''}
+                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">DPP:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.dpp)}</td></tr>` : ''}
+                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">PPN (12%):</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.ppn)}</td></tr>` : ''}
+                        <tr style="background:#f1f5f9; font-weight:bold;"><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">GRAND TOTAL:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.grandTotal)}</td></tr>
                     </tbody>
                 </table>`;
             }
@@ -2507,7 +2501,7 @@
             docData.tglDokumen = today;
             docData.jatuhTempo = "";
             docData.noPO = "";
-            docData.noSuratJalan = generateDocNumber('sj', currentEntityKey);
+            docData.noSuratJalan = (currentDocType === 'sj') ? generateDocNumber('sj', currentEntityKey) : "";
             docData.noFakturPajak = "";
             docData.noKontrak = "";
 
@@ -2555,40 +2549,41 @@
             document.getElementById('taxSchemeSelect').value = 'dpp_pdf_spreadsheet';
 
             docData.docTitle = "INVOICE";
-            docData.noDokumen = "INV/LKC/2026/09/014";
-            docData.tglDokumen = "15 Oktober 2026";
-            docData.jatuhTempo = "30 Oktober 2026";
-            docData.noPO = "POMTR--882/VIII/2026";
+            docData.noDokumen = generateDocNumber('invoice', 'sahala');
+            docData.tglDokumen = getFormattedIndonesianDate();
+            docData.jatuhTempo = "";
+            docData.noPO = "";
+            docData.noSuratJalan = "";
+            docData.clientProjectLoc = "";
 
             docData.clientName = "PT Nindya Karya (Persero)";
             docData.clientAttn = "Attn: Bpk. Bambang Wijaya (Purchasing Dept.)";
             docData.clientAddress = "Gedung Nindya, Jalan Letnan Jenderal MT. Haryono Kavling 22,\nCawang, Jakarta Timur, 13630";
-            docData.clientProjectLoc = "Franco Surabaya";
 
             docData.syaratBayar = "Tempo 30 Hari (Net 30)";
             docData.noFakturPajak = "";
-            docData.noSuratJalan = "SJ-COR/IX/2026/089";
 
             docData.bankName = "Bank Rakyat Indonesia (BRI) - Cabang Klaten";
             docData.bankRek = "003501003583303 a.n PT SAHALA PRIMA UTAMA";
             docData.bankWa = "0858 6660 5978 / 0821 1089 9534";
 
-            docData.snkContent = "1. Pajak: Seluruh harga yang tercantum di atas adalah harga bersih dan belum termasuk PPN.\n2. Skema Pembayaran: Pembayaran wajib menggunakan skema SKBDN sesuai klausul kontrak.\n3. Harga yang tertera berlaku dengan ketentuan Franco Surabaya.";
+            docData.snkContent = "1. Pajak: Seluruh harga yang tercantum di atas adalah harga bersih dan belum termasuk PPN.\n2. Skema Pembayaran: Pembayaran wajib menggunakan skema SKBDN sesuai klausul kontrak.";
 
-            docData.sigCityDate = "Klaten, 15 Oktober 2026";
+            const city = docData.sigCity || "Klaten";
+            docData.sigCityDate = `${city}, ${docData.tglDokumen}`;
             docData.sigSignerName = "(Siti Zubaedah, S.Ag.)";
             docData.sigSignerRole = "Direktur";
 
             docData.kwitansiTerimaDari = "PT Nindya Karya (Persero)";
-            docData.kwitansiUntukBayar = "Pembayaran pengadaan Concret Canvas & Asesoris Pengecoran";
-            docData.kwitansiReferensi = "No. Inv: INV/LKC/2026/09/014\nNo. PO: POMTR--882/VIII/2026\nNo. SJ: SJ-COR/IX/2026/089";
-            docData.kwitansiNoInv = "INV/LKC/2026/09/014";
-            docData.kwitansiNoPO = "POMTR--882/VIII/2026";
-            docData.kwitansiNoSJ = "SJ-COR/IX/2026/089";
+            docData.kwitansiUntukBayar = "Pembayaran pengadaan Concrete Canvas & Asesoris Pengecoran";
+            docData.kwitansiReferensi = `No. Inv: ${docData.noDokumen}`;
+            docData.kwitansiNoInv = docData.noDokumen;
+            docData.kwitansiNoPO = "";
+            docData.kwitansiNoSJ = "";
             docData.kwitansiNominalManual = 0;
 
             items = [
-                { id: 1, name: "concret canvas", material: "Cast Iron FC250", spec: "", qty: 650, unit: "kg", price: 520000 },
+                { id: 1, name: "Concrete Canvas", material: "Cast Iron FC250", spec: "", qty: 650, unit: "kg", price: 520000 },
                 { id: 2, name: "Asesoris Concrete Canvas dan Pemasangan", material: "", spec: "", qty: 650, unit: "piece", price: 100000 }
             ];
 
