@@ -555,6 +555,13 @@
 </head>
 <body class="min-h-screen pb-12">
 
+    <!-- Container Floating Dropdown Auto-Suggest -->
+    <div id="liveSuggestDropdown" class="no-print hidden fixed z-[9999] bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto min-w-[300px]"></div>
+
+    <!-- Datalist Referensi HTML5 -->
+    <datalist id="customerDatalist"></datalist>
+    <datalist id="itemDatalist"></datalist>
+
     <header class="no-print bg-slate-900 text-white border-b border-indigo-500/30 sticky top-0 z-50 shadow-md">
         <div class="max-w-[1650px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
@@ -569,7 +576,7 @@
                         </span>
                     </h1>
                     <p class="text-[11px] text-slate-300">
-                        Klik &amp; ketik langsung teks di atas kertas • Panel kiri adaptif otomatis sesuai dokumen
+                        Klik &amp; ketik langsung teks di atas kertas • Dilengkapi Auto-Suggest Memori Browser
                     </p>
                 </div>
             </div>
@@ -584,7 +591,10 @@
                 <button type="button" onclick="copyTableToWord()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm">
                     <span>📋</span> Salin Tabel ke Word
                 </button>
-                <button type="button" onclick="window.print()" class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md">
+                <button type="button" onclick="saveDraftManual()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 transition shadow-sm" title="Simpan data saat ini &amp; rekam ke memori browser">
+                    <span>💾</span> Simpan Draf
+                </button>
+                <button type="button" onclick="printDocumentWithAutoName()" class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md">
                     <span>🖨️</span> Cetak A4 / PDF
                 </button>
             </div>
@@ -680,6 +690,19 @@
                 </div>
             </div>
 
+            <!-- CARD MEMORI BROWSER (localStorage) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4">
+                <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
+                    <span class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>🧠</span> Memori Browser (Auto-Suggest)
+                    </span>
+                    <button type="button" onclick="clearBrowserMemory()" class="text-[10px] text-rose-500 hover:text-rose-700 underline" title="Hapus seluruh riwayat memori di laptop ini">Hapus Riwayat</button>
+                </div>
+                <div id="memoryStatusText" class="text-[11px] text-slate-500">
+                    Memuat status memori tersimpan...
+                </div>
+            </div>
+
             <!-- CARD 3 -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4">
                 <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
@@ -740,7 +763,7 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
                     <div class="text-xs">
                         <span class="font-bold text-white">Mode Edit Langsung Aktif:</span>
-                        <span class="text-indigo-200 ml-1">Silakan klik langsung pada teks, nama klien, tabel, atau nomor di kertas untuk mengetik!</span>
+                        <span class="text-indigo-200 ml-1">Ketik nama klien atau deskripsi barang untuk memuat data &amp; harga otomatis!</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -946,6 +969,396 @@
 
         let additionalFees = [];
 
+        /* =========================================================================
+           FITUR: AUTO-SUGGEST & LOCALSTORAGE CLIENT DATA & ITEM BARANG
+           ========================================================================= */
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function escapeQuotes(str) {
+            if (!str) return '';
+            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        }
+
+        function getSavedCustomers() {
+            try {
+                const raw = localStorage.getItem('invoice_saved_customers');
+                if (raw) return JSON.parse(raw);
+            } catch(e) {}
+            const defaultSeed = [
+                {
+                    name: "PT Nindya Karya (Persero)",
+                    attn: "Attn: Bpk. Bambang Wijaya (Purchasing Dept.)",
+                    address: "Gedung Nindya, Jalan Letnan Jenderal MT. Haryono Kavling 22,\nCawang, Jakarta Timur, 13630",
+                    projectLoc: "Franco Surabaya"
+                }
+            ];
+            try {
+                localStorage.setItem('invoice_saved_customers', JSON.stringify(defaultSeed));
+            } catch(e) {}
+            return defaultSeed;
+        }
+
+        function saveCustomerToStorage(name, attn, address, projectLoc) {
+            if (!name || !name.trim()) return;
+            const cleanName = name.replace(/\u00a0/g, ' ').trim();
+            let custs = getSavedCustomers();
+            const existingIdx = custs.findIndex(c => c.name.toLowerCase() === cleanName.toLowerCase());
+            const data = {
+                name: cleanName,
+                attn: (attn || '').replace(/\u00a0/g, ' ').trim(),
+                address: (address || '').replace(/\u00a0/g, ' ').trim(),
+                projectLoc: (projectLoc || '').replace(/\u00a0/g, ' ').trim()
+            };
+            if (existingIdx >= 0) {
+                custs[existingIdx] = data;
+            } else {
+                custs.unshift(data);
+            }
+            if (custs.length > 50) custs = custs.slice(0, 50);
+            try {
+                localStorage.setItem('invoice_saved_customers', JSON.stringify(custs));
+                refreshDatalists();
+                updateMemoryStatusUI();
+            } catch(e) {}
+        }
+
+        function getSavedItems() {
+            try {
+                const raw = localStorage.getItem('invoice_saved_items');
+                if (raw) return JSON.parse(raw);
+            } catch(e) {}
+            const defaultSeed = [
+                {
+                    name: "Concrete Canvas",
+                    material: "Cast Iron FC250",
+                    spec: "",
+                    unit: "kg",
+                    price: 520000
+                },
+                {
+                    name: "Asesoris Concrete Canvas dan Pemasangan",
+                    material: "",
+                    spec: "",
+                    unit: "piece",
+                    price: 100000
+                }
+            ];
+            try {
+                localStorage.setItem('invoice_saved_items', JSON.stringify(defaultSeed));
+            } catch(e) {}
+            return defaultSeed;
+        }
+
+        function saveItemToStorage(item) {
+            if (!item.name || !item.name.trim()) return;
+            const cleanName = item.name.replace(/\u00a0/g, ' ').trim();
+            let itms = getSavedItems();
+            const existingIdx = itms.findIndex(i => i.name.toLowerCase() === cleanName.toLowerCase());
+            const data = {
+                name: cleanName,
+                material: (item.material || '').replace(/\u00a0/g, ' ').trim(),
+                spec: (item.spec || '').replace(/\u00a0/g, ' ').trim(),
+                unit: (item.unit || '').replace(/\u00a0/g, ' ').trim(),
+                price: Number(item.price) || 0
+            };
+            if (existingIdx >= 0) {
+                itms[existingIdx] = data;
+            } else {
+                itms.unshift(data);
+            }
+            if (itms.length > 100) itms = itms.slice(0, 100);
+            try {
+                localStorage.setItem('invoice_saved_items', JSON.stringify(itms));
+                refreshDatalists();
+                updateMemoryStatusUI();
+            } catch(e) {}
+        }
+
+        function saveCurrentDataToStorage() {
+            if (docData.clientName && docData.clientName.trim()) {
+                saveCustomerToStorage(docData.clientName, docData.clientAttn, docData.clientAddress, docData.clientProjectLoc);
+            }
+            items.forEach(i => {
+                if (i.name && i.name.trim()) {
+                    saveItemToStorage(i);
+                }
+            });
+            updateMemoryStatusUI();
+        }
+
+        function refreshDatalists() {
+            const custDl = document.getElementById('customerDatalist');
+            const itemDl = document.getElementById('itemDatalist');
+            if (custDl) {
+                const custs = getSavedCustomers();
+                custDl.innerHTML = custs.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.attn || '')}</option>`).join('');
+            }
+            if (itemDl) {
+                const itms = getSavedItems();
+                itemDl.innerHTML = itms.map(i => `<option value="${escapeHtml(i.name)}">${formatRupiah(i.price)}</option>`).join('');
+            }
+        }
+
+        function updateMemoryStatusUI() {
+            const statusEl = document.getElementById('memoryStatusText');
+            if (!statusEl) return;
+            const custs = getSavedCustomers();
+            const itms = getSavedItems();
+            statusEl.innerHTML = `Tersimpan: <strong class="text-indigo-600">${custs.length} Klien</strong>, <strong class="text-indigo-600">${itms.length} Barang</strong>.<br><span class="text-[10px] text-slate-400">Otomatis muncul saat mengetik nama klien/barang.</span>`;
+        }
+
+        function clearBrowserMemory() {
+            if (confirm("Hapus semua riwayat memori klien dan barang yang tersimpan di laptop ini?")) {
+                try {
+                    localStorage.removeItem('invoice_saved_customers');
+                    localStorage.removeItem('invoice_saved_items');
+                } catch(e) {}
+                refreshDatalists();
+                updateMemoryStatusUI();
+                showToast("Riwayat memori browser telah dibersihkan.");
+            }
+        }
+
+        function hideSuggestDropdown() {
+            const dd = document.getElementById('liveSuggestDropdown');
+            if (dd) dd.classList.add('hidden');
+        }
+
+        function showCustomerSuggestions(el) {
+            const query = (el.innerText || '').replace(/\u00a0/g, ' ').trim().toLowerCase();
+            const allCusts = getSavedCustomers();
+            const matches = query ? allCusts.filter(c => c.name.toLowerCase().includes(query)) : allCusts;
+
+            const dd = document.getElementById('liveSuggestDropdown');
+            if (!dd) return;
+
+            if (matches.length === 0) {
+                hideSuggestDropdown();
+                return;
+            }
+
+            const rect = el.getBoundingClientRect();
+            dd.style.top = (rect.bottom + 4) + 'px';
+            dd.style.left = rect.left + 'px';
+            dd.style.width = Math.max(rect.width, 320) + 'px';
+            dd.innerHTML = `
+                <div class="px-2.5 py-1.5 bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
+                    <span>Pilih Klien Tersimpan (${matches.length})</span>
+                    <span class="text-[9px] font-normal text-slate-400">Auto-fill Otomatis</span>
+                </div>
+            ` + matches.map((c, idx) => `
+                <div class="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-b-0 text-left transition select-none" onmousedown="event.preventDefault(); selectCustomerSuggestion('${escapeQuotes(c.name)}')">
+                    <div class="font-bold text-xs text-slate-900">${escapeHtml(c.name)}</div>
+                    <div class="text-[10px] text-slate-500 truncate">${escapeHtml(c.attn || '')} ${c.address ? '• ' + escapeHtml(c.address.split('\n')[0]) : ''}</div>
+                    ${c.projectLoc ? `<div class="text-[9px] text-indigo-600 italic">Kirim: ${escapeHtml(c.projectLoc)}</div>` : ''}
+                </div>
+            `).join('');
+            dd.classList.remove('hidden');
+        }
+
+        function selectCustomerSuggestion(customerName) {
+            const custs = getSavedCustomers();
+            const cust = custs.find(c => c.name === customerName);
+            if (cust) {
+                docData.clientName = cust.name;
+                docData.clientAttn = cust.attn || '';
+                docData.clientAddress = cust.address || '';
+                docData.clientProjectLoc = cust.projectLoc || '';
+                renderDocumentView();
+                hideSuggestDropdown();
+                showToast(`Data klien "${cust.name}" otomatis terisi!`);
+                updateDocumentTitlePreview();
+            }
+        }
+
+        function handleCustomerSuggestFocus(el) {
+            showCustomerSuggestions(el);
+        }
+
+        function handleCustomerSuggestInput(el, event) {
+            handleDocDataEdit('clientName', el.innerText, el);
+            showCustomerSuggestions(el);
+        }
+
+        function handleCustomerBlur(el) {
+            handleDocDataEdit('clientName', el.innerText, el);
+            setTimeout(hideSuggestDropdown, 200);
+        }
+
+        function showItemSuggestions(itemId, el) {
+            const query = (el.innerText || '').replace(/\u00a0/g, ' ').trim().toLowerCase();
+            const allItems = getSavedItems();
+            const matches = query ? allItems.filter(i => i.name.toLowerCase().includes(query)) : allItems;
+
+            const dd = document.getElementById('liveSuggestDropdown');
+            if (!dd) return;
+
+            if (matches.length === 0) {
+                hideSuggestDropdown();
+                return;
+            }
+
+            const rect = el.getBoundingClientRect();
+            dd.style.top = (rect.bottom + 4) + 'px';
+            dd.style.left = rect.left + 'px';
+            dd.style.width = Math.max(rect.width, 340) + 'px';
+            dd.innerHTML = `
+                <div class="px-2.5 py-1.5 bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
+                    <span>Pilih Barang / Pekerjaan (${matches.length})</span>
+                    <span class="text-[9px] font-normal text-slate-400">Harga &amp; Detail Otomatis</span>
+                </div>
+            ` + matches.map((item, idx) => `
+                <div class="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-b-0 text-left transition select-none" onmousedown="event.preventDefault(); selectItemSuggestion(${itemId}, '${escapeQuotes(item.name)}')">
+                    <div class="font-bold text-xs text-slate-900">${escapeHtml(item.name)}</div>
+                    <div class="flex items-center gap-2 text-[10px]">
+                        <span class="font-semibold text-indigo-700">${formatRupiah(item.price)}</span>
+                        ${item.unit ? `<span class="text-slate-500">/${escapeHtml(item.unit)}</span>` : ''}
+                        ${item.material ? `<span class="text-slate-400">• ${escapeHtml(item.material)}</span>` : ''}
+                    </div>
+                    ${item.spec ? `<div class="text-[9px] text-slate-400 truncate">${escapeHtml(item.spec)}</div>` : ''}
+                </div>
+            `).join('');
+            dd.classList.remove('hidden');
+        }
+
+        function selectItemSuggestion(itemId, itemName) {
+            const allItems = getSavedItems();
+            const saved = allItems.find(i => i.name === itemName);
+            const item = items.find(i => i.id === itemId);
+            if (saved && item) {
+                item.name = saved.name;
+                if (saved.material) item.material = saved.material;
+                if (saved.spec) item.spec = saved.spec;
+                if (saved.unit) item.unit = saved.unit;
+                if (saved.price) item.price = saved.price;
+                if (!item.qty || item.qty === 0) item.qty = 1;
+                renderDocumentView();
+                hideSuggestDropdown();
+                showToast(`Barang "${saved.name}" dan harga termuat!`);
+            }
+        }
+
+        function handleItemSuggestFocus(id, el) {
+            showItemSuggestions(id, el);
+        }
+
+        function handleItemSuggestInput(id, el, event) {
+            updateItemValue(id, 'name', el.innerText, el);
+            showItemSuggestions(id, el);
+        }
+
+        function handleItemBlur(id, el) {
+            updateItemValue(id, 'name', el.innerText, el);
+            setTimeout(hideSuggestDropdown, 200);
+        }
+
+        /* =========================================================================
+           FITUR: OTOMASI PENAMAAN DOKUMEN / INVOICE
+           Format: [Jenis Dokumen] - [Nama Klien] - [No Invoice] - [Bulan Tahun]
+           ========================================================================= */
+
+        function getFormattedDocumentFileName() {
+            const docLabels = {
+                invoice: 'Invoice',
+                sj: 'Surat Jalan',
+                kwitansi: 'Kwitansi',
+                bundle: 'Bundle Inv & Kwitansi',
+                quotation: 'Surat Penawaran',
+                po: 'Purchase Order'
+            };
+            const docTypeLabel = docLabels[currentDocType] || 'Dokumen';
+
+            let client = (docData.clientName || '').replace(/[\/\\:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
+            if (!client) {
+                if (currentDocType === 'sj' && docData.sjPenerimaName) {
+                    client = docData.sjPenerimaName.replace(/[\/\\:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
+                } else {
+                    client = 'Klien';
+                }
+            }
+
+            let noDoc = '';
+            if (currentDocType === 'sj') {
+                noDoc = docData.noSuratJalan || docData.noDokumen;
+            } else if (currentDocType === 'kwitansi') {
+                noDoc = docData.kwitansiNo || docData.noDokumen;
+            } else if (currentDocType === 'quotation') {
+                noDoc = docData.quotationNo || docData.noDokumen;
+            } else {
+                noDoc = docData.noDokumen;
+            }
+            noDoc = (noDoc || 'NoDoc').replace(/[\/\\:*?"<>|]/g, '-').replace(/-+/g, '-').trim();
+
+            const monthNames = {
+                'januari': 'Jan', 'februari': 'Feb', 'maret': 'Mar', 'april': 'Apr',
+                'mei': 'Mei', 'juni': 'Jun', 'juli': 'Jul', 'agustus': 'Agu',
+                'september': 'Sep', 'oktober': 'Okt', 'november': 'Nov', 'desember': 'Des'
+            };
+            const tglLower = (docData.tglDokumen || '').toLowerCase();
+            let foundMonth = '';
+            for (const [full, abbr] of Object.entries(monthNames)) {
+                if (tglLower.includes(full)) {
+                    foundMonth = abbr;
+                    break;
+                }
+            }
+            const yearMatch = (docData.tglDokumen || '').match(/\b(20\d\d)\b/);
+            const foundYear = yearMatch ? yearMatch[1] : (new Date()).getFullYear();
+
+            let monthYear = '';
+            if (foundMonth) {
+                monthYear = `${foundMonth} ${foundYear}`;
+            } else {
+                const now = new Date();
+                const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+                monthYear = `${shortMonths[now.getMonth()]} ${now.getFullYear()}`;
+            }
+
+            return `${docTypeLabel} - ${client} - ${noDoc} - ${monthYear}`;
+        }
+
+        function updateDocumentTitlePreview() {
+            const fileName = getFormattedDocumentFileName();
+            document.title = fileName;
+        }
+
+        function printDocumentWithAutoName() {
+            saveCurrentDataToStorage();
+            updateDocumentTitlePreview();
+            window.print();
+        }
+
+        function saveDraftManual() {
+            saveCurrentDataToStorage();
+            updateDocumentTitlePreview();
+            try {
+                const draftState = {
+                    currentDocType,
+                    currentEntityKey,
+                    taxScheme,
+                    docData,
+                    items,
+                    additionalFees,
+                    savedAt: new Date().toISOString()
+                };
+                localStorage.setItem('invoice_current_draft', JSON.stringify(draftState));
+            } catch(e) {}
+            showToast(`💾 Draf berhasil disimpan: ${document.title}`);
+        }
+
+        /* =========================================================================
+           RENDER & BUILDER DOKUMEN
+           ========================================================================= */
+
         function getActiveLogoHTML() {
             if (customLogoDataUrl) {
                 return `<img src="${customLogoDataUrl}" alt="Logo Perusahaan" class="max-w-[66px] max-h-[66px] object-contain">`;
@@ -955,6 +1368,29 @@
             } else {
                 return `<img src="logo Sahala 1.png" alt="Logo PT Sahala Prima Utama" class="max-w-[66px] max-h-[66px] object-contain">`;
             }
+        }
+
+        function createDefaultStampSVG(companyName) {
+            const cleanName = (companyName || 'PT SAHALA PRIMA UTAMA').toUpperCase();
+            return `
+            <svg width="112" height="112" viewBox="0 0 120 120" class="stamp-container-img">
+                <defs>
+                    <path id="stampCircleTop" d="M 22,60 A 38,38 0 1,1 98,60" />
+                    <path id="stampCircleBottom" d="M 98,60 A 38,38 0 1,1 22,60" />
+                </defs>
+                <circle cx="60" cy="60" r="52" fill="none" stroke="#1d4ed8" stroke-width="3"/>
+                <circle cx="60" cy="60" r="47" fill="none" stroke="#1d4ed8" stroke-width="1"/>
+                <circle cx="60" cy="60" r="27" fill="none" stroke="#1d4ed8" stroke-width="1.5"/>
+                <text fill="#1d4ed8" font-size="8" font-weight="bold" font-family="Arial, sans-serif" letter-spacing="1.2">
+                    <textPath href="#stampCircleTop" startOffset="50%" text-anchor="middle">${cleanName}</textPath>
+                </text>
+                <text fill="#1d4ed8" font-size="7.5" font-weight="bold" font-family="Arial, sans-serif" letter-spacing="1.5">
+                    <textPath href="#stampCircleBottom" startOffset="50%" text-anchor="middle">★ KLATEN - INDONESIA ★</textPath>
+                </text>
+                <line x1="15" y1="51" x2="105" y2="51" stroke="#1d4ed8" stroke-width="1.2"/>
+                <line x1="15" y1="69" x2="105" y2="69" stroke="#1d4ed8" stroke-width="1.2"/>
+                <text x="60" y="63" font-family="Arial, sans-serif" font-size="8.5" font-weight="800" fill="#1d4ed8" text-anchor="middle">VERIFIED</text>
+            </svg>`;
         }
 
         function getActiveStampHTML() {
@@ -1551,7 +1987,7 @@
                 <div class="pdf-info-card">
                     <div class="pdf-info-card-header">${billHeader}</div>
                     <div class="pdf-info-card-body">
-                        <div style="font-weight:700; font-size:9.5pt;" contenteditable="true" data-placeholder="Klik untuk mengisi Nama Klien / Perusahaan..." onblur="handleDocDataEdit('clientName', this.innerText, this)">${docData.clientName || ''}</div>
+                        <div style="font-weight:700; font-size:9.5pt;" contenteditable="true" data-placeholder="Klik untuk mengisi Nama Klien / Perusahaan..." onfocus="handleCustomerSuggestFocus(this)" oninput="handleCustomerSuggestInput(this, event)" onblur="handleCustomerBlur(this)">${docData.clientName || ''}</div>
                         ${displayConfig.showAttn ? `<div style="font-weight:600; margin-top:2px;" contenteditable="true" data-placeholder="Attn: Bpk. / Ibu (Bagian Pembelian)..." onblur="handleDocDataEdit('clientAttn', this.innerText, this)">${docData.clientAttn || ''}</div>` : ''}
                         <div style="margin-top:2px; white-space:pre-line;" contenteditable="true" data-placeholder="Alamat lengkap klien / tujuan pengiriman..." onblur="handleDocDataEdit('clientAddress', this.innerText, this)">${docData.clientAddress || ''}</div>
                         ${(displayConfig.showProjectLoc) ? `<div class="${!hasLoc ? 'print-hide-empty' : ''}" style="margin-top:3px; font-style:italic;"><strong>Lokasi Proyek / Kirim:</strong> <span contenteditable="true" data-placeholder="Contoh: Franco Surabaya / Loco Pabrik..." onblur="handleDocDataEdit('clientProjectLoc', this.innerText, this)">${docData.clientProjectLoc || ''}</span></div>` : ''}
@@ -1667,7 +2103,7 @@
                 <tr>
                     <td style="text-align:center; width:6%;">${idx + 1}</td>
                     <td>
-                        <div class="item-name-print" contenteditable="true" data-placeholder="Klik untuk menulis nama barang..." onblur="updateItemValue(${item.id}, 'name', this.innerText, this)">${item.name || ''}</div>
+                        <div class="item-name-print" contenteditable="true" data-placeholder="Klik untuk menulis nama barang..." onfocus="handleItemSuggestFocus(${item.id}, this)" oninput="handleItemSuggestInput(${item.id}, this, event)" onblur="handleItemBlur(${item.id}, this)">${item.name || ''}</div>
                         ${displayConfig.showColSpec ? `<div class="item-spec-print" contenteditable="true" data-placeholder="Tambah spesifikasi teknis / catatan jika ada..." onblur="updateItemValue(${item.id}, 'spec', this.innerText, this)">${item.spec || ''}</div>` : ''}
                     </td>
                     ${displayConfig.showColMaterial ? `<td style="text-align:center; width:20%;" contenteditable="true" data-placeholder="Material/Grade" onblur="updateItemValue(${item.id}, 'material', this.innerText, this)">${item.material || ''}</td>` : ''}
@@ -1711,7 +2147,7 @@
                 <tr>
                     <td style="text-align:center; width:5%;">${idx + 1}</td>
                     <td>
-                        <div class="item-name-print" contenteditable="true" data-placeholder="Klik untuk menulis nama barang / pekerjaan..." onblur="updateItemValue(${item.id}, 'name', this.innerText, this)">${item.name || ''}</div>
+                        <div class="item-name-print" contenteditable="true" data-placeholder="Klik untuk menulis nama barang / pekerjaan..." onfocus="handleItemSuggestFocus(${item.id}, this)" oninput="handleItemSuggestInput(${item.id}, this, event)" onblur="handleItemBlur(${item.id}, this)">${item.name || ''}</div>
                         ${displayConfig.showColSpec ? `<div class="item-spec-print" contenteditable="true" data-placeholder="Tambah spesifikasi teknis / detail..." onblur="updateItemValue(${item.id}, 'spec', this.innerText, this)">${item.spec || ''}</div>` : ''}
                     </td>
                     ${displayConfig.showColMaterial ? `<td style="text-align:center; width:16%;" contenteditable="true" data-placeholder="Material/Grade" onblur="updateItemValue(${item.id}, 'material', this.innerText, this)">${item.material || ''}</td>` : ''}
@@ -1983,7 +2419,7 @@
                         <tr>
                             <td class="kw-label">Telah Terima Dari</td>
                             <td class="kw-colon">:</td>
-                            <td class="kw-val" style="font-weight:700;" contenteditable="true" data-placeholder="Klik untuk menulis nama pembayar / perusahaan..." onblur="handleDocDataEdit('kwitansiTerimaDari', this.innerText, this)">${docData.kwitansiTerimaDari || docData.clientName || ''}</td>
+                            <td class="kw-val" style="font-weight:700;" contenteditable="true" data-placeholder="Klik untuk menulis nama pembayar / perusahaan..." onfocus="handleCustomerSuggestFocus(this)" oninput="handleCustomerSuggestInput(this, event)" onblur="handleCustomerBlur(this)">${docData.kwitansiTerimaDari || docData.clientName || ''}</td>
                         </tr>
                         <tr>
                             <td class="kw-label">Uang Sejumlah</td>
@@ -2080,6 +2516,8 @@
                     ${buildFooterAndSignaturesHTML()}
                 </div>`;
             }
+
+            updateDocumentTitlePreview();
         }
 
         function updateItemPriceDirectLive(id, val) {
@@ -2594,8 +3032,18 @@
             showToast("Contoh data PT Nindya Karya dimuat!");
         }
 
+        // Listener untuk menutup dropdown saat klik di luar area
+        document.addEventListener('mousedown', function(e) {
+            const dd = document.getElementById('liveSuggestDropdown');
+            if (dd && !e.target.closest('#liveSuggestDropdown') && !e.target.closest('[contenteditable="true"]')) {
+                hideSuggestDropdown();
+            }
+        });
+
         window.onload = function() {
             resetAllToBlank();
+            refreshDatalists();
+            updateMemoryStatusUI();
         };
     </script>
 </body></html>
