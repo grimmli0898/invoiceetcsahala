@@ -279,7 +279,7 @@
             line-height: 1.28;
         }
 
-        /* Split Bawah Tabel: Kiri (Bank & Terbilang) & Kanan (Tabel Summary Total) */
+        /* Split Bawah Tabel */
         .pdf-summary-split {
             display: grid;
             grid-template-columns: 56% 42%;
@@ -338,7 +338,7 @@
             font-size: 9.5pt;
         }
 
-        /* Split Footer: Syarat & Ketentuan + Tanda Tangan */
+        /* Split Footer */
         .pdf-bottom-split {
             display: grid;
             grid-template-columns: 58% 39%;
@@ -585,10 +585,10 @@
 
     <main class="max-w-[1650px] mx-auto px-4 sm:px-6 pt-5 grid grid-cols-1 xl:grid-cols-12 gap-6 items-start print-wrapper">
 
-        <!-- PANEL KIRI (PENGATUR DOKUMEN & CHECKLIST ADAPTIF) -->
+        <!-- PANEL KIRI -->
         <aside class="no-print xl:col-span-4 flex flex-col gap-4">
 
-            <!-- CARD 1: PILIHAN DOKUMEN & PRESET ENTITAS -->
+            <!-- CARD 1 -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4">
                 <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
                     <span class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
@@ -628,7 +628,7 @@
                 </div>
             </div>
 
-            <!-- CARD 2: KUSTOMISASI LOGO & STEMPEL (CAP) DENGAN UPLOAD -->
+            <!-- CARD 2 -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4">
                 <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
                     <span class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
@@ -639,7 +639,6 @@
                 </div>
 
                 <div class="space-y-3 text-xs">
-                    <!-- Upload Cap/Stempel -->
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                         <div class="flex items-center justify-between">
                             <label class="flex items-center gap-1.5 font-semibold text-slate-800 cursor-pointer">
@@ -656,7 +655,6 @@
                         <p class="text-[10px] text-slate-500">Unggah file PNG transparan stempel Anda atau gunakan stempel resmi bawaan.</p>
                     </div>
 
-                    <!-- Upload Logo -->
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
                         <div class="flex items-center justify-between">
                             <label class="flex items-center gap-1.5 font-semibold text-slate-800 cursor-pointer">
@@ -674,7 +672,7 @@
                 </div>
             </div>
 
-            <!-- CARD 3: CHECKLIST ADAPTIF -->
+            <!-- CARD 3 -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4">
                 <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
                     <span class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
@@ -698,7 +696,6 @@
 
                     <div id="dynamicChecklistContainer" class="space-y-2 text-xs"></div>
 
-                    <!-- Kontrol Skema Pajak -->
                     <div id="taxSchemeControlBox" class="mt-4 pt-3 border-t border-slate-200 space-y-2.5" style="display: block;">
                         <label for="taxSchemeSelect" class="block text-[11px] font-bold text-slate-700 uppercase tracking-wide">
                             Skema Perhitungan Pajak:
@@ -712,7 +709,7 @@
                 </div>
             </div>
 
-            <!-- CARD 4: KONTROL BARIS TABEL CEPAT -->
+            <!-- CARD 4 -->
             <div id="tableActionCard" class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4" style="display: block;">
                 <div class="flex items-center justify-between">
                     <div>
@@ -727,7 +724,7 @@
 
         </aside>
 
-        <!-- PANEL KANAN: PRATINJAU INTERAKTIF KERTAS A4 -->
+        <!-- PANEL KANAN -->
         <section class="xl:col-span-8 flex flex-col items-center gap-5 overflow-x-auto pb-12">
             
             <div class="no-print w-full bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 shadow-md border border-indigo-400/20">
@@ -745,7 +742,7 @@
                 </div>
             </div>
 
-            <!-- Container Lembar Kertas A4 -->
+            <!-- Lembar A4 -->
             <div id="a4DocumentHost" class="w-full flex flex-col items-center gap-8"></div>
 
         </section>
@@ -768,7 +765,9 @@
                 bankName: 'Bank Rakyat Indonesia (BRI) - Cabang Klaten',
                 bankRek: '003501003583303 a.n PT SAHALA PRIMA UTAMA',
                 bankWa: '0858 6660 5978 / 0821 1089 9534',
-                defaultTax: 'dpp_pdf_spreadsheet'
+                defaultTax: 'dpp_pdf_spreadsheet',
+                signerName: '(Siti Zubaedah, S.Ag.)',
+                signerRole: 'Direktur'
             },
             arba: {
                 id: 'arba',
@@ -781,7 +780,9 @@
                 bankName: 'BANK CENTRAL ASIA (BCA) - Cabang KLATEN',
                 bankRek: '0301017153 a.n AHMAD AUVA NADIYYI KAFF',
                 bankWa: '0858 6660 5978 / 0821 1089 9534',
-                defaultTax: 'non_ppn'
+                defaultTax: 'non_ppn',
+                signerName: '(Ahmad Auva Nadiyyi Kaff)',
+                signerRole: 'Direktur'
             }
         };
 
@@ -910,8 +911,8 @@
             sigGreeting: "Hormat Kami, PT Sahala Prima Utama",
             sigCity: defaultCity,
             sigCityDate: `${defaultCity}, ${defaultDate}`,
-            sigSignerName: "",
-            sigSignerRole: "",
+            sigSignerName: "(Siti Zubaedah, S.Ag.)",
+            sigSignerRole: "Direktur",
 
             sjPengirimJabatan: "",
             sjDriverName: "",
@@ -2322,6 +2323,9 @@
             docData.bankRek = ent.bankRek;
             docData.bankWa = ent.bankWa;
 
+            docData.sigSignerName = ent.signerName;
+            docData.sigSignerRole = ent.signerRole;
+
             docData.noDokumen = generateDocNumber(currentDocType, currentEntityKey);
             if (docData.quotationNo) docData.quotationNo = generateDocNumber('quotation', currentEntityKey);
             if (docData.noSuratJalan) docData.noSuratJalan = generateDocNumber('sj', currentEntityKey);
@@ -2492,6 +2496,8 @@
             const today = getFormattedIndonesianDate();
             const city = "Klaten";
 
+            const ent = PRESET_ENTITIES[currentEntityKey];
+
             docData.clientName = "";
             docData.clientAttn = "";
             docData.clientAddress = "";
@@ -2514,8 +2520,8 @@
             docData.snkContent = "";
             docData.sigCity = city;
             docData.sigCityDate = `${city}, ${today}`;
-            docData.sigSignerName = "";
-            docData.sigSignerRole = "";
+            docData.sigSignerName = ent.signerName;
+            docData.sigSignerRole = ent.signerRole;
 
             docData.kwitansiNo = generateDocNumber('kwitansi', currentEntityKey);
             docData.kwitansiTerimaDari = "";
@@ -2526,7 +2532,6 @@
             docData.kwitansiNoSJ = "";
             docData.kwitansiNominalManual = 0;
 
-            const ent = PRESET_ENTITIES[currentEntityKey];
             docData.bankName = ent.bankName;
             docData.bankRek = ent.bankRek;
             docData.bankWa = ent.bankWa;
@@ -2571,8 +2576,8 @@
             docData.snkContent = "1. Pajak: Seluruh harga yang tercantum di atas adalah harga bersih dan belum termasuk PPN.\n2. Skema Pembayaran: Pembayaran wajib menggunakan skema SKBDN sesuai klausul kontrak.\n3. Harga yang tertera berlaku dengan ketentuan Franco Surabaya.";
 
             docData.sigCityDate = "Klaten, 15 Oktober 2026";
-            docData.sigSignerName = "(Siti Zubaydah, S.Ag.)";
-            docData.sigSignerRole = "Director";
+            docData.sigSignerName = "(Siti Zubaedah, S.Ag.)";
+            docData.sigSignerRole = "Direktur";
 
             docData.kwitansiTerimaDari = "PT Nindya Karya (Persero)";
             docData.kwitansiUntukBayar = "Pembayaran pengadaan Concret Canvas & Asesoris Pengecoran";
