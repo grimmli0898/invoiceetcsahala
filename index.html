@@ -555,13 +555,6 @@
 </head>
 <body class="min-h-screen pb-12">
 
-    <!-- Container Floating Dropdown Auto-Suggest -->
-    <div id="liveSuggestDropdown" class="no-print hidden fixed z-[9999] bg-white border border-slate-200 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto min-w-[300px]"></div>
-
-    <!-- Datalist Referensi HTML5 -->
-    <datalist id="customerDatalist"></datalist>
-    <datalist id="itemDatalist"></datalist>
-
     <header class="no-print bg-slate-900 text-white border-b border-indigo-500/30 sticky top-0 z-50 shadow-md">
         <div class="max-w-[1650px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
             <div class="flex items-center gap-3">
@@ -576,7 +569,7 @@
                         </span>
                     </h1>
                     <p class="text-[11px] text-slate-300">
-                        Klik &amp; ketik langsung teks di atas kertas • Dilengkapi Auto-Suggest Memori Browser
+                        Klik &amp; ketik langsung teks di atas kertas • Panel kiri adaptif otomatis sesuai dokumen
                     </p>
                 </div>
             </div>
@@ -591,10 +584,7 @@
                 <button type="button" onclick="copyTableToWord()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm">
                     <span>📋</span> Salin Tabel ke Word
                 </button>
-                <button type="button" onclick="saveDraftManual()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 transition shadow-sm" title="Simpan data saat ini &amp; rekam ke memori browser">
-                    <span>💾</span> Simpan Draf
-                </button>
-                <button type="button" onclick="printDocumentWithAutoName()" class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md">
+                <button type="button" onclick="window.print()" class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md">
                     <span>🖨️</span> Cetak A4 / PDF
                 </button>
             </div>
@@ -690,19 +680,6 @@
                 </div>
             </div>
 
-            <!-- CARD MEMORI BROWSER (localStorage) -->
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4">
-                <div class="flex items-center justify-between pb-2 mb-2 border-b border-slate-100">
-                    <span class="text-xs font-bold text-slate-800 uppercase tracking-wide flex items-center gap-1.5">
-                        <span>🧠</span> Memori Browser (Auto-Suggest)
-                    </span>
-                    <button type="button" onclick="clearBrowserMemory()" class="text-[10px] text-rose-500 hover:text-rose-700 underline" title="Hapus seluruh riwayat memori di laptop ini">Hapus Riwayat</button>
-                </div>
-                <div id="memoryStatusText" class="text-[11px] text-slate-500">
-                    Memuat status memori tersimpan...
-                </div>
-            </div>
-
             <!-- CARD 3 -->
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200/90 p-4">
                 <div class="flex items-center justify-between pb-2 mb-3 border-b border-slate-100">
@@ -763,7 +740,7 @@
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
                     <div class="text-xs">
                         <span class="font-bold text-white">Mode Edit Langsung Aktif:</span>
-                        <span class="text-indigo-200 ml-1">Ketik nama klien atau deskripsi barang untuk memuat data &amp; harga otomatis!</span>
+                        <span class="text-indigo-200 ml-1">Silakan klik langsung pada teks, nama klien, tabel, atau nomor di kertas untuk mengetik!</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -969,409 +946,1141 @@
 
         let additionalFees = [];
 
-        /* =========================================================================
-           FITUR: AUTO-SUGGEST & LOCALSTORAGE CLIENT DATA & ITEM BARANG
-           ========================================================================= */
-
-        function escapeHtml(str) {
-            if (!str) return '';
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-
-        function escapeQuotes(str) {
-            if (!str) return '';
-            return String(str).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-        }
-
-        function getSavedCustomers() {
-            try {
-                const raw = localStorage.getItem('invoice_saved_customers');
-                if (raw) return JSON.parse(raw);
-            } catch(e) {}
-            const defaultSeed = [
-                {
-                    name: "PT Nindya Karya (Persero)",
-                    attn: "Attn: Bpk. Bambang Wijaya (Purchasing Dept.)",
-                    address: "Gedung Nindya, Jalan Letnan Jenderal MT. Haryono Kavling 22,\nCawang, Jakarta Timur, 13630",
-                    projectLoc: "Franco Surabaya"
-                }
-            ];
-            try {
-                localStorage.setItem('invoice_saved_customers', JSON.stringify(defaultSeed));
-            } catch(e) {}
-            return defaultSeed;
-        }
-
-        function saveCustomerToStorage(name, attn, address, projectLoc) {
-            if (!name || !name.trim()) return;
-            const cleanName = name.replace(/\u00a0/g, ' ').trim();
-            let custs = getSavedCustomers();
-            const existingIdx = custs.findIndex(c => c.name.toLowerCase() === cleanName.toLowerCase());
-            const data = {
-                name: cleanName,
-                attn: (attn || '').replace(/\u00a0/g, ' ').trim(),
-                address: (address || '').replace(/\u00a0/g, ' ').trim(),
-                projectLoc: (projectLoc || '').replace(/\u00a0/g, ' ').trim()
-            };
-            if (existingIdx >= 0) {
-                custs[existingIdx] = data;
+        function getActiveLogoHTML() {
+            if (customLogoDataUrl) {
+                return `<img src="${customLogoDataUrl}" alt="Logo Perusahaan" class="max-w-[66px] max-h-[66px] object-contain">`;
+            }
+            if (currentEntityKey === 'arba') {
+                return `<img src="logo Arba 1.png" alt="Logo Arba Indah Logam" class="max-w-[66px] max-h-[66px] object-contain">`;
             } else {
-                custs.unshift(data);
+                return `<img src="logo Sahala 1.png" alt="Logo PT Sahala Prima Utama" class="max-w-[66px] max-h-[66px] object-contain">`;
             }
-            if (custs.length > 50) custs = custs.slice(0, 50);
-            try {
-                localStorage.setItem('invoice_saved_customers', JSON.stringify(custs));
-                refreshDatalists();
-                updateMemoryStatusUI();
-            } catch(e) {}
         }
 
-        function getSavedItems() {
-            try {
-                const raw = localStorage.getItem('invoice_saved_items');
-                if (raw) return JSON.parse(raw);
-            } catch(e) {}
-            const defaultSeed = [
-                {
-                    name: "Concrete Canvas",
-                    material: "Cast Iron FC250",
-                    spec: "",
-                    unit: "kg",
-                    price: 520000
-                },
-                {
-                    name: "Asesoris Concrete Canvas dan Pemasangan",
-                    material: "",
-                    spec: "",
-                    unit: "piece",
-                    price: 100000
-                }
-            ];
-            try {
-                localStorage.setItem('invoice_saved_items', JSON.stringify(defaultSeed));
-            } catch(e) {}
-            return defaultSeed;
+        function getActiveStampHTML() {
+            if (!displayConfig.showStamp) return '';
+            if (customStampDataUrl) {
+                return `
+                <div class="relative flex items-center justify-center w-full h-full group">
+                    <img src="${customStampDataUrl}" alt="Stempel Perusahaan" class="stamp-container-img">
+                    <button type="button" onclick="document.getElementById('stampUploadInput').click()" class="no-print absolute -top-1 -right-1 w-6 h-6 bg-white border border-slate-300 rounded-full shadow-sm hover:bg-slate-100 text-indigo-600 text-xs flex items-center justify-center transition cursor-pointer" title="Ganti file stempel">✎</button>
+                </div>`;
+            }
+            return `
+            <div class="no-print flex items-center justify-center w-full h-full">
+                <button type="button" onclick="document.getElementById('stampUploadInput').click()" class="inline-flex items-center gap-1 px-3 py-1 text-[11px] font-semibold text-slate-500 hover:text-indigo-600 border border-dashed border-slate-300 hover:border-indigo-400 rounded-lg bg-slate-50/70 hover:bg-indigo-50/70 transition cursor-pointer shadow-sm" title="Unggah file stempel / cap lokal">
+                    <span class="text-sm font-bold leading-none">+</span>
+                    <span>Upload Cap</span>
+                </button>
+            </div>`;
         }
 
-        function saveItemToStorage(item) {
-            if (!item.name || !item.name.trim()) return;
-            const cleanName = item.name.replace(/\u00a0/g, ' ').trim();
-            let itms = getSavedItems();
-            const existingIdx = itms.findIndex(i => i.name.toLowerCase() === cleanName.toLowerCase());
-            const data = {
-                name: cleanName,
-                material: (item.material || '').replace(/\u00a0/g, ' ').trim(),
-                spec: (item.spec || '').replace(/\u00a0/g, ' ').trim(),
-                unit: (item.unit || '').replace(/\u00a0/g, ' ').trim(),
-                price: Number(item.price) || 0
-            };
-            if (existingIdx >= 0) {
-                itms[existingIdx] = data;
+        function toggleChecklistAccordion() {
+            isChecklistCollapsed = !isChecklistCollapsed;
+            const body = document.getElementById('checklistAccordionBody');
+            const chevron = document.getElementById('iconChevronChecklist');
+            if (!body || !chevron) return;
+
+            if (isChecklistCollapsed) {
+                body.classList.add('hidden');
+                chevron.classList.add('rotate-180');
             } else {
-                itms.unshift(data);
+                body.classList.remove('hidden');
+                chevron.classList.remove('rotate-180');
             }
-            if (itms.length > 100) itms = itms.slice(0, 100);
-            try {
-                localStorage.setItem('invoice_saved_items', JSON.stringify(itms));
-                refreshDatalists();
-                updateMemoryStatusUI();
-            } catch(e) {}
         }
 
-        function saveCurrentDataToStorage() {
-            if (docData.clientName && docData.clientName.trim()) {
-                saveCustomerToStorage(docData.clientName, docData.clientAttn, docData.clientAddress, docData.clientProjectLoc);
+        function handleNumericKeyDown(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                e.target.blur();
             }
-            items.forEach(i => {
-                if (i.name && i.name.trim()) {
-                    saveItemToStorage(i);
+        }
+
+        function formatLiveCurrencyInput(el, onParsed) {
+            const raw = el.innerText || '';
+            const cleanDigits = raw.replace(/\D/g, '');
+            const num = cleanDigits ? parseInt(cleanDigits, 10) : 0;
+
+            if (typeof onParsed === 'function') {
+                onParsed(num);
+            }
+
+            if (!cleanDigits) return;
+
+            const sel = window.getSelection();
+            let digitsBefore = 0;
+            if (sel && sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                const preRange = range.cloneRange();
+                preRange.selectNodeContents(el);
+                preRange.setEnd(range.endContainer, range.endOffset);
+                digitsBefore = preRange.toString().replace(/\D/g, '').length;
+            }
+
+            const formatted = num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            el.innerText = formatted;
+
+            if (sel) {
+                let count = 0;
+                let foundOffset = formatted.length;
+                for (let i = 0; i < formatted.length; i++) {
+                    if (/\d/.test(formatted[i])) count++;
+                    if (count === digitsBefore) {
+                        foundOffset = i + 1;
+                        break;
+                    }
                 }
-            });
-            updateMemoryStatusUI();
-        }
-
-        function refreshDatalists() {
-            const custDl = document.getElementById('customerDatalist');
-            const itemDl = document.getElementById('itemDatalist');
-            if (custDl) {
-                const custs = getSavedCustomers();
-                custDl.innerHTML = custs.map(c => `<option value="${escapeHtml(c.name)}">${escapeHtml(c.attn || '')}</option>`).join('');
-            }
-            if (itemDl) {
-                const itms = getSavedItems();
-                itemDl.innerHTML = itms.map(i => `<option value="${escapeHtml(i.name)}">${formatRupiah(i.price)}</option>`).join('');
-            }
-        }
-
-        function updateMemoryStatusUI() {
-            const statusEl = document.getElementById('memoryStatusText');
-            if (!statusEl) return;
-            const custs = getSavedCustomers();
-            const itms = getSavedItems();
-            statusEl.innerHTML = `Tersimpan: <strong class="text-indigo-600">${custs.length} Klien</strong>, <strong class="text-indigo-600">${itms.length} Barang</strong>.<br><span class="text-[10px] text-slate-400">Otomatis muncul saat mengetik nama klien/barang.</span>`;
-        }
-
-        function clearBrowserMemory() {
-            if (confirm("Hapus semua riwayat memori klien dan barang yang tersimpan di laptop ini?")) {
                 try {
-                    localStorage.removeItem('invoice_saved_customers');
-                    localStorage.removeItem('invoice_saved_items');
-                } catch(e) {}
-                refreshDatalists();
-                updateMemoryStatusUI();
-                showToast("Riwayat memori browser telah dibersihkan.");
+                    const newRange = document.createRange();
+                    const textNode = el.firstChild || el;
+                    newRange.setStart(textNode, Math.min(foundOffset, textNode.length || 0));
+                    newRange.collapse(true);
+                    sel.removeAllRanges();
+                    sel.addRange(newRange);
+                } catch (err) {}
             }
         }
 
-        function hideSuggestDropdown() {
-            const dd = document.getElementById('liveSuggestDropdown');
-            if (dd) dd.classList.add('hidden');
+        function parseFlexibleNumber(raw) {
+            if (raw === null || raw === undefined) return 0;
+            let str = String(raw).trim();
+            if (!str) return 0;
+            str = str.replace(/[^0-9.,-]/g, '');
+            if (!str) return 0;
+            if (/[.,]\d{2}$/.test(str) && str.length > 4) {
+                const parts = str.split(/[.,]/);
+                if (parts.length > 2) str = str.slice(0, -3);
+            }
+            const digitsOnly = str.replace(/[.,]/g, '');
+            const parsed = parseFloat(digitsOnly);
+            return isNaN(parsed) ? 0 : parsed;
         }
 
-        function showCustomerSuggestions(el) {
-            const query = (el.innerText || '').replace(/\u00a0/g, ' ').trim().toLowerCase();
-            const allCusts = getSavedCustomers();
-            const matches = query ? allCusts.filter(c => c.name.toLowerCase().includes(query)) : allCusts;
+        function formatRupiah(num) {
+            const rounded = Math.round(Number(num) || 0);
+            const sign = rounded < 0 ? "-" : "";
+            const str = Math.abs(rounded).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            return sign + "Rp " + str;
+        }
 
-            const dd = document.getElementById('liveSuggestDropdown');
-            if (!dd) return;
+        function formatNumberThousand(num) {
+            const rounded = Math.round(Number(num) || 0);
+            if (rounded === 0) return "0";
+            return rounded.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
 
-            if (matches.length === 0) {
-                hideSuggestDropdown();
-                return;
+        function calculateCurrentTotals() {
+            const rawItemsSubtotal = items.reduce((acc, item) => {
+                const q = Number(item.qty) || 0;
+                const p = Number(item.price) || 0;
+                return acc + (q * p);
+            }, 0);
+
+            const totalFees = additionalFees.reduce((acc, fee) => {
+                return acc + (Number(fee.amount) || 0);
+            }, 0);
+
+            const subtotalAfterFees = rawItemsSubtotal + totalFees;
+
+            let dpp = 0;
+            let ppn = 0;
+            let grandTotal = subtotalAfterFees;
+
+            if (taxScheme === 'dpp_pdf_spreadsheet') {
+                dpp = Math.round((11 / 12) * subtotalAfterFees);
+                ppn = Math.round(0.12 * dpp);
+                grandTotal = Math.round(dpp + ppn);
+            } else if (taxScheme === 'ppn_reguler') {
+                dpp = Math.round(subtotalAfterFees);
+                ppn = Math.round(0.12 * dpp);
+                grandTotal = Math.round(subtotalAfterFees + ppn);
+            } else {
+                dpp = Math.round(subtotalAfterFees);
+                ppn = 0;
+                grandTotal = Math.round(subtotalAfterFees);
             }
 
-            const rect = el.getBoundingClientRect();
-            dd.style.top = (rect.bottom + 4) + 'px';
-            dd.style.left = rect.left + 'px';
-            dd.style.width = Math.max(rect.width, 320) + 'px';
-            dd.innerHTML = `
-                <div class="px-2.5 py-1.5 bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
-                    <span>Pilih Klien Tersimpan (${matches.length})</span>
-                    <span class="text-[9px] font-normal text-slate-400">Klik untuk Auto-fill</span>
+            return {
+                rawItemsSubtotal: Math.round(rawItemsSubtotal),
+                totalFees: Math.round(totalFees),
+                subtotalAfterFees: Math.round(subtotalAfterFees),
+                dpp,
+                ppn,
+                grandTotal,
+                terbilang: terbilangRupiah(grandTotal)
+            };
+        }
+
+        function terbilangRupiah(nominal) {
+            let angka = Math.floor(Math.abs(Number(nominal) || 0));
+            if (angka === 0) return "Nol Rupiah";
+
+            const satuan = ["", "Satu", "Dua", "Tiga", "Empat", "Lima", "Enam", "Tujuh", "Delapan", "Sembilan", "Sepuluh", "Sebelas"];
+
+            function konversi(n) {
+                if (n < 12) return satuan[n];
+                if (n < 20) return konversi(n - 10) + " Belas";
+                if (n < 100) return konversi(Math.floor(n / 10)) + " Puluh " + konversi(n % 10);
+                if (n < 200) return "Seratus " + konversi(n - 100);
+                if (n < 1000) return konversi(Math.floor(n / 100)) + " Ratus " + konversi(n % 100);
+                if (n < 2000) return "Seribu " + konversi(n - 1000);
+                if (n < 1000000) return konversi(Math.floor(n / 1000)) + " Ribu " + konversi(n % 1000);
+                if (n < 1000000000) return konversi(Math.floor(n / 1000000)) + " Juta " + konversi(n % 1000000);
+                if (n < 1000000000000) return konversi(Math.floor(n / 1000000000)) + " Miliar " + konversi(n % 1000000000);
+                if (n < 1000000000000000) return konversi(Math.floor(n / 1000000000000)) + " Triliun " + konversi(n % 1000000000000);
+                return "";
+            }
+
+            return konversi(angka).replace(/\s+/g, " ").trim() + " Rupiah";
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toastNotification');
+            if (!toast) return;
+            toast.textContent = message;
+            toast.classList.remove('opacity-0', 'translate-y-3');
+            toast.classList.add('opacity-100', 'translate-y-0');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => {
+                toast.classList.remove('opacity-100', 'translate-y-0');
+                toast.classList.add('opacity-0', 'translate-y-3');
+            }, 3000);
+        }
+
+        function renderAdaptiveChecklists() {
+            const container = document.getElementById('dynamicChecklistContainer');
+            const badge = document.getElementById('activeDocBadge');
+            const taxBox = document.getElementById('taxSchemeControlBox');
+            const tableCard = document.getElementById('tableActionCard');
+
+            if (!container) return;
+
+            const isSJ = currentDocType === 'sj';
+            const isKwitansi = currentDocType === 'kwitansi';
+            const isQuotation = currentDocType === 'quotation';
+
+            if (badge) {
+                const labels = {
+                    invoice: 'Invoice (Faktur)',
+                    sj: 'Surat Jalan (DO)',
+                    kwitansi: 'Kwitansi Resmi',
+                    bundle: 'Bundle (Inv + Kwitansi)',
+                    quotation: 'Surat Penawaran',
+                    po: 'Purchase Order'
+                };
+                badge.textContent = labels[currentDocType] || 'Dokumen';
+            }
+
+            if (taxBox) {
+                taxBox.style.display = (isSJ || isKwitansi) ? 'none' : 'block';
+            }
+
+            if (tableCard) {
+                tableCard.style.display = isKwitansi ? 'none' : 'block';
+            }
+
+            let html = '';
+
+            html += `
+            <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">A. Kop &amp; Identitas</div>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" ${displayConfig.showKop ? 'checked' : ''} onchange="updateDisplayOption('showKop', this.checked)" class="accent-indigo-600 rounded">
+                    <span>Profil Perusahaan</span>
+                </label>
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" ${displayConfig.showAddress ? 'checked' : ''} onchange="updateDisplayOption('showAddress', this.checked)" class="accent-indigo-600 rounded">
+                    <span>Alamat &amp; Kontak WhatsApp</span>
+                </label>
+                ${currentEntityKey === 'sahala' ? `
+                <label class="flex items-center gap-2 cursor-pointer select-none">
+                    <input type="checkbox" ${displayConfig.showNpwp ? 'checked' : ''} onchange="updateDisplayOption('showNpwp', this.checked)" class="accent-indigo-600 rounded">
+                    <span>Baris NPWP</span>
+                </label>
+                ` : `
+                <div class="text-[10px] text-slate-500 italic pl-1">
+                    * Arba Indah Logam tidak memiliki NPWP (otomatis non-aktif)
                 </div>
-            ` + matches.map(c => `
-                <div class="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-b-0 text-left transition select-none" onmousedown="event.preventDefault(); selectCustomerSuggestion('${escapeQuotes(c.name)}')">
-                    <div class="font-bold text-xs text-slate-900">${escapeHtml(c.name)}</div>
-                    <div class="text-[10px] text-slate-500 truncate">${escapeHtml(c.attn || '')} ${c.address ? '• ' + escapeHtml(c.address.split('\n')[0]) : ''}</div>
-                    ${c.projectLoc ? `<div class="text-[9px] text-indigo-600 italic">Kirim: ${escapeHtml(c.projectLoc)}</div>` : ''}
+                `}
+            </div>`;
+
+            if (isSJ) {
+                html += `
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">B. Metadata &amp; Tujuan Pengiriman</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showMetaTable ? 'checked' : ''} onchange="updateDisplayOption('showMetaTable', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Tabel No. SJ &amp; Tanggal Kirim</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showBillTo ? 'checked' : ''} onchange="updateDisplayOption('showBillTo', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Box Tujuan / Penerima Barang</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showProjectLoc ? 'checked' : ''} onchange="updateDisplayOption('showProjectLoc', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Baris Lokasi Proyek / Kirim Ke</span>
+                    </label>
                 </div>
-            `).join('');
-            dd.classList.remove('hidden');
-        }
 
-        function selectCustomerSuggestion(customerName) {
-            const custs = getSavedCustomers();
-            const cust = custs.find(c => c.name === customerName);
-            if (cust) {
-                docData.clientName = cust.name;
-                docData.kwitansiTerimaDari = cust.name;
-                docData.clientAttn = cust.attn || '';
-                docData.clientAddress = cust.address || '';
-                docData.clientProjectLoc = cust.projectLoc || '';
-                
-                hideSuggestDropdown();
-                renderDocumentView();
-                showToast(`Data klien "${cust.name}" berhasil dimuat!`);
-            }
-        }
-
-        function handleCustomerSuggestFocus(el) {
-            showCustomerSuggestions(el);
-        }
-
-        function handleCustomerSuggestInput(el, event) {
-            const val = (el.innerText || '').replace(/\u00a0/g, ' ').trim();
-            docData.clientName = val;
-            docData.kwitansiTerimaDari = val;
-            updateDocumentTitlePreview();
-            showCustomerSuggestions(el);
-        }
-
-        function handleCustomerBlur(el) {
-            const val = (el.innerText || '').replace(/\u00a0/g, ' ').trim();
-            docData.clientName = val;
-            docData.kwitansiTerimaDari = val;
-            if (!val && el) el.innerHTML = '';
-            updateDocumentTitlePreview();
-            setTimeout(hideSuggestDropdown, 250);
-        }
-
-        function showItemSuggestions(itemId, el) {
-            const query = (el.innerText || '').replace(/\u00a0/g, ' ').trim().toLowerCase();
-            const allItems = getSavedItems();
-            const matches = query ? allItems.filter(i => i.name.toLowerCase().includes(query)) : allItems;
-
-            const dd = document.getElementById('liveSuggestDropdown');
-            if (!dd) return;
-
-            if (matches.length === 0) {
-                hideSuggestDropdown();
-                return;
-            }
-
-            const rect = el.getBoundingClientRect();
-            dd.style.top = (rect.bottom + 4) + 'px';
-            dd.style.left = rect.left + 'px';
-            dd.style.width = Math.max(rect.width, 340) + 'px';
-            dd.innerHTML = `
-                <div class="px-2.5 py-1.5 bg-slate-100 text-[10px] font-bold text-slate-500 uppercase tracking-wider flex justify-between items-center">
-                    <span>Pilih Barang (${matches.length})</span>
-                    <span class="text-[9px] font-normal text-slate-400">Klik untuk isi harga</span>
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">C. Kolom Tabel Surat Jalan</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showColMaterial ? 'checked' : ''} onchange="updateDisplayOption('showColMaterial', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Kolom Material/Grade</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showColUnit ? 'checked' : ''} onchange="updateDisplayOption('showColUnit', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Kolom Satuan (kg/piece)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showColSpec ? 'checked' : ''} onchange="updateDisplayOption('showColSpec', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Spesifikasi Teknis Barang</span>
+                    </label>
                 </div>
-            ` + matches.map(item => `
-                <div class="px-3 py-2 hover:bg-indigo-50 cursor-pointer border-b border-slate-100 last:border-b-0 text-left transition select-none" onmousedown="event.preventDefault(); selectItemSuggestion(${itemId}, '${escapeQuotes(item.name)}')">
-                    <div class="font-bold text-xs text-slate-900">${escapeHtml(item.name)}</div>
-                    <div class="flex items-center gap-2 text-[10px]">
-                        <span class="font-semibold text-indigo-700">${formatRupiah(item.price)}</span>
-                        ${item.unit ? `<span class="text-slate-500">/${escapeHtml(item.unit)}</span>` : ''}
-                        ${item.material ? `<span class="text-slate-400">• ${escapeHtml(item.material)}</span>` : ''}
+
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">D. Validasi &amp; Tanda Tangan 3 Pihak</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showCatatanSJ ? 'checked' : ''} onchange="updateDisplayOption('showCatatanSJ', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Catatan Pemeriksaan Barang</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showTtd3Pihak ? 'checked' : ''} onchange="updateDisplayOption('showTtd3Pihak', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Tanda Tangan 3 Pihak (Gudang, Driver, Penerima)</span>
+                    </label>
+                </div>`;
+            } else if (isKwitansi) {
+                html += `
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">B. Elemen Kwitansi</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showMetaTable ? 'checked' : ''} onchange="updateDisplayOption('showMetaTable', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Tabel No. Kwitansi &amp; Tanggal</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showTerbilangBox ? 'checked' : ''} onchange="updateDisplayOption('showTerbilangBox', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Paralelogram Kalimat Terbilang</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showBankBox ? 'checked' : ''} onchange="updateDisplayOption('showBankBox', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Informasi Rekening Bank</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showSignature ? 'checked' : ''} onchange="updateDisplayOption('showSignature', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Blok Tanda Tangan Penerima</span>
+                    </label>
+                </div>`;
+            } else if (isQuotation) {
+                html += `
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">B. Identitas Penawaran &amp; Klien</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showMetaTable ? 'checked' : ''} onchange="updateDisplayOption('showMetaTable', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Tabel No. Penawaran, Masa Berlaku &amp; Perihal</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showBillTo ? 'checked' : ''} onchange="updateDisplayOption('showBillTo', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Box Ditujukan Kepada (Klien Yth)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showTxInfo ? 'checked' : ''} onchange="updateDisplayOption('showTxInfo', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Box Ketentuan Pembayaran &amp; Lead Time</span>
+                    </label>
+                </div>
+
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">C. Kolom Tabel Surat Penawaran</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showColMaterial ? 'checked' : ''} onchange="updateDisplayOption('showColMaterial', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Kolom Material/Grade</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showColUnit ? 'checked' : ''} onchange="updateDisplayOption('showColUnit', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Kolom Satuan</span>
+                    </label>
+                </div>
+
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">D. Ringkasan &amp; Pajak</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showRowSubtotal ? 'checked' : ''} onchange="updateDisplayOption('showRowSubtotal', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Subtotal Harga</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showRowPpn ? 'checked' : ''} onchange="updateDisplayOption('showRowPpn', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Baris PPN</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showRowGrandTotal ? 'checked' : ''} onchange="updateDisplayOption('showRowGrandTotal', this.checked)" class="accent-indigo-600 rounded">
+                        <span>GRAND TOTAL</span>
+                    </label>
+                </div>
+
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">E. Syarat Penawaran &amp; TTD</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showSnK ? 'checked' : ''} onchange="updateDisplayOption('showSnK', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Syarat &amp; Ketentuan Penawaran</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showSignature ? 'checked' : ''} onchange="updateDisplayOption('showSignature', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Kolom Tanda Tangan &amp; Persetujuan</span>
+                    </label>
+                </div>`;
+            } else {
+                html += `
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">B. Metadata &amp; Tagihan Klien</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showMetaTable ? 'checked' : ''} onchange="updateDisplayOption('showMetaTable', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Tabel Invoice, Tanggal &amp; PO</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showBillTo ? 'checked' : ''} onchange="updateDisplayOption('showBillTo', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Box Tagihan Klien (Bill To)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showTxInfo ? 'checked' : ''} onchange="updateDisplayOption('showTxInfo', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Box Informasi Transaksi &amp; SJ</span>
+                    </label>
+                </div>
+
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">C. Kolom Tabel Komponen</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showColMaterial ? 'checked' : ''} onchange="updateDisplayOption('showColMaterial', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Kolom Material/Grade</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showColUnit ? 'checked' : ''} onchange="updateDisplayOption('showColUnit', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Kolom Satuan</span>
+                    </label>
+                </div>
+
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">D. Baris Ringkasan Harga &amp; Pajak</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showRowSubtotal ? 'checked' : ''} onchange="updateDisplayOption('showRowSubtotal', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Baris Total (Subtotal)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showRowDpp ? 'checked' : ''} onchange="updateDisplayOption('showRowDpp', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Baris DPP Nilai Lain</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showRowPpn ? 'checked' : ''} onchange="updateDisplayOption('showRowPpn', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Baris PPN (12%)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showRowGrandTotal ? 'checked' : ''} onchange="updateDisplayOption('showRowGrandTotal', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Baris GRAND TOTAL</span>
+                    </label>
+                </div>
+
+                <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200/90 space-y-1.5">
+                    <div class="text-[10px] font-bold text-indigo-700 uppercase tracking-wider">E. Pembayaran, S&amp;K &amp; TTD</div>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showBankBox ? 'checked' : ''} onchange="updateDisplayOption('showBankBox', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Box Rekening Bank &amp; QC</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showTerbilangBox ? 'checked' : ''} onchange="updateDisplayOption('showTerbilangBox', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Box Kalimat Terbilang</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showSnK ? 'checked' : ''} onchange="updateDisplayOption('showSnK', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Syarat &amp; Ketentuan (Terms)</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer select-none">
+                        <input type="checkbox" ${displayConfig.showSignature ? 'checked' : ''} onchange="updateDisplayOption('showSignature', this.checked)" class="accent-indigo-600 rounded">
+                        <span>Blok Tanda Tangan &amp; Stempel</span>
+                    </label>
+                </div>`;
+            }
+
+            container.innerHTML = html;
+        }
+
+        function updateDisplayOption(key, val) {
+            displayConfig[key] = val;
+            renderDocumentView();
+        }
+
+        function buildHeaderHTML(customTitle = null, docTypeContext = null) {
+            if (!displayConfig.showKop) return '';
+
+            const ent = PRESET_ENTITIES[currentEntityKey];
+            const effectiveType = docTypeContext || currentDocType;
+            const title = customTitle || docData.docTitle || 'INVOICE';
+            const logoHtml = getActiveLogoHTML();
+
+            const leftHtml = `
+            <div class="pdf-company-block">
+                ${displayConfig.showLogo ? `
+                    <div class="pdf-logo-box">
+                        ${logoHtml}
+                    </div>
+                ` : ''}
+                <div>
+                    <div class="pdf-company-title" contenteditable="true" data-placeholder="NAMA PERUSAHAAN" onblur="handleTextEdit('name', this.innerText, this)">${ent.name || ''}</div>
+                    ${(displayConfig.showSubTitle && ent.subtitle) ? `<div class="pdf-company-sub" contenteditable="true" data-placeholder="SUB JUDUL PERUSAHAAN" onblur="handleTextEdit('subtitle', this.innerText, this)">${ent.subtitle || ''}</div>` : ''}
+                    <div class="pdf-company-meta">
+                        ${displayConfig.showAddress ? `<div contenteditable="true" data-placeholder="Alamat lengkap perusahaan..." onblur="handleTextEdit('addressLine', this.innerText, this)">${ent.addressLine || ''}</div>` : ''}
+                        ${displayConfig.showContact ? `<div contenteditable="true" data-placeholder="Kontak, WhatsApp, Email, Website..." onblur="handleTextEdit('contactLine', this.innerText, this)">${ent.contactLine || ''}</div>` : ''}
+                        ${(displayConfig.showNpwp && ent.npwpLine) ? `<div style="font-weight:700; margin-top:1px;" contenteditable="true" data-placeholder="NPWP: 00.000.000.0-000.000" onblur="handleTextEdit('npwpLine', this.innerText, this)">${ent.npwpLine}</div>` : ''}
                     </div>
                 </div>
-            `).join('');
-            dd.classList.remove('hidden');
-        }
+            </div>`;
 
-        function selectItemSuggestion(itemId, itemName) {
-            const allItems = getSavedItems();
-            const saved = allItems.find(i => i.name === itemName);
-            const item = items.find(i => i.id === itemId);
-            if (saved && item) {
-                item.name = saved.name;
-                if (saved.material) item.material = saved.material;
-                if (saved.spec) item.spec = saved.spec;
-                if (saved.unit) item.unit = saved.unit;
-                if (saved.price) item.price = saved.price;
-                if (!item.qty || item.qty === 0) item.qty = 1;
-                
-                hideSuggestDropdown();
-                renderDocumentView();
-                showToast(`Barang "${saved.name}" berhasil dimuat!`);
-            }
-        }
-
-        function handleItemSuggestFocus(id, el) {
-            showItemSuggestions(id, el);
-        }
-
-        function handleItemSuggestInput(id, el, event) {
-            const item = items.find(i => i.id === id);
-            if (item) {
-                item.name = (el.innerText || '').replace(/\u00a0/g, ' ').trim();
-            }
-            showItemSuggestions(id, el);
-        }
-
-        function handleItemBlur(id, el) {
-            const item = items.find(i => i.id === id);
-            if (item) {
-                item.name = (el.innerText || '').replace(/\u00a0/g, ' ').trim();
-                if (!item.name && el) el.innerHTML = '';
-            }
-            setTimeout(hideSuggestDropdown, 250);
-        }
-
-        /* =========================================================================
-           FITUR: OTOMASI PENAMAAN DOKUMEN / INVOICE
-           ========================================================================= */
-
-        function getFormattedDocumentFileName() {
-            const docLabels = {
-                invoice: 'Invoice',
-                sj: 'Surat Jalan',
-                kwitansi: 'Kwitansi',
-                bundle: 'Bundle Inv & Kwitansi',
-                quotation: 'Surat Penawaran',
-                po: 'Purchase Order'
-            };
-            const docTypeLabel = docLabels[currentDocType] || 'Dokumen';
-
-            let client = (docData.clientName || '').replace(/[\/\\:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
-            if (!client) {
-                if (currentDocType === 'sj' && docData.sjPenerimaName) {
-                    client = docData.sjPenerimaName.replace(/[\/\\:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
+            let metaRows = '';
+            if (displayConfig.showMetaTable) {
+                if (effectiveType === 'sj') {
+                    const hasPo = Boolean(docData.noPO && docData.noPO.trim());
+                    metaRows = `
+                    <tr>
+                        <td class="tm-label">No. Surat Jalan</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor Surat Jalan..." onblur="handleDocDataEdit('noSuratJalan', this.innerText, this)">${docData.noSuratJalan || ''}</td>
+                    </tr>
+                    <tr>
+                        <td class="tm-label">Tanggal Kirim</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal kirim..." onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
+                    </tr>
+                    <tr class="${!hasPo ? 'print-hide-empty' : ''}">
+                        <td class="tm-label">No. PO Pemesan</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor PO pemesan..." onblur="handleDocDataEdit('noPO', this.innerText, this)">${docData.noPO || ''}</td>
+                    </tr>`;
+                } else if (effectiveType === 'kwitansi') {
+                    metaRows = `
+                    <tr>
+                        <td class="tm-label">No. Kwitansi</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor kwitansi..." onblur="handleDocDataEdit('kwitansiNo', this.innerText, this)">${docData.kwitansiNo || docData.noDokumen || ''}</td>
+                    </tr>
+                    <tr>
+                        <td class="tm-label">Tanggal Bayar</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal bayar..." onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
+                    </tr>`;
+                } else if (effectiveType === 'quotation') {
+                    const hasValidity = Boolean(docData.quotationValidity && docData.quotationValidity.trim());
+                    const hasPerihal = Boolean(docData.quotationPerihal && docData.quotationPerihal.trim());
+                    metaRows = `
+                    <tr>
+                        <td class="tm-label">No. Penawaran</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor surat penawaran..." onblur="handleDocDataEdit('quotationNo', this.innerText, this)">${docData.quotationNo || docData.noDokumen || ''}</td>
+                    </tr>
+                    <tr>
+                        <td class="tm-label">Tanggal</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal penawaran..." onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
+                    </tr>
+                    <tr class="${!hasValidity ? 'print-hide-empty' : ''}">
+                        <td class="tm-label">Masa Berlaku</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Contoh: 14 Hari..." onblur="handleDocDataEdit('quotationValidity', this.innerText, this)">${docData.quotationValidity || ''}</td>
+                    </tr>
+                    <tr class="${!hasPerihal ? 'print-hide-empty' : ''}">
+                        <td class="tm-label">Perihal</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Perihal penawaran..." onblur="handleDocDataEdit('quotationPerihal', this.innerText, this)">${docData.quotationPerihal || ''}</td>
+                    </tr>`;
                 } else {
-                    client = 'Klien';
+                    const hasTempo = Boolean(docData.jatuhTempo && docData.jatuhTempo.trim());
+                    const hasPo = Boolean(docData.noPO && docData.noPO.trim());
+                    metaRows = `
+                    <tr>
+                        <td class="tm-label">${effectiveType === 'po' ? 'No. PO' : 'No. Invoice'}</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor dokumen..." onblur="handleDocDataEdit('noDokumen', this.innerText, this)">${docData.noDokumen || ''}</td>
+                    </tr>
+                    <tr>
+                        <td class="tm-label">Tanggal</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal invoice..." onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
+                    </tr>
+                    <tr class="${!hasTempo ? 'print-hide-empty' : ''}">
+                        <td class="tm-label">Jatuh Tempo</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal jatuh tempo..." onblur="handleDocDataEdit('jatuhTempo', this.innerText, this)">${docData.jatuhTempo || ''}</td>
+                    </tr>
+                    <tr class="${!hasPo ? 'print-hide-empty' : ''}">
+                        <td class="tm-label">PO Pemesan</td>
+                        <td class="tm-colon">:</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor PO pemesan..." onblur="handleDocDataEdit('noPO', this.innerText, this)">${docData.noPO || ''}</td>
+                    </tr>`;
                 }
             }
 
-            let noDoc = '';
-            if (currentDocType === 'sj') {
-                noDoc = docData.noSuratJalan || docData.noDokumen;
+            const rightHtml = `
+            <div class="pdf-doc-right">
+                <div class="pdf-doc-big-title" contenteditable="true" data-placeholder="JUDUL DOKUMEN" onblur="handleDocDataEdit('docTitle', this.innerText, this)">${title}</div>
+                ${metaRows ? `<table class="pdf-top-meta-table"><tbody>${metaRows}</tbody></table>` : ''}
+            </div>`;
+
+            return `
+            <div class="pdf-header-grid">
+                <div>${leftHtml}</div>
+                <div>${rightHtml}</div>
+            </div>`;
+        }
+
+        function buildMidInfoGridHTML() {
+            if (!displayConfig.showBillTo && !displayConfig.showTxInfo) return '';
+
+            const isSJ = currentDocType === 'sj';
+            const isQuotation = currentDocType === 'quotation';
+
+            let billHeader = 'TAGIHAN KEPADA (BILL TO):';
+            if (isSJ) {
+                billHeader = 'TUJUAN PENGIRIMAN / PENERIMA:';
+            } else if (isQuotation) {
+                billHeader = 'KEPADA YTH (DITUJUKAN KEPADA):';
+            } else if (currentDocType === 'po') {
+                billHeader = 'KEPADA VENDOR / SUPPLIER:';
+            }
+
+            let billToHtml = '';
+            if (displayConfig.showBillTo) {
+                const hasLoc = Boolean(docData.clientProjectLoc && docData.clientProjectLoc.trim());
+                billToHtml = `
+                <div class="pdf-info-card">
+                    <div class="pdf-info-card-header">${billHeader}</div>
+                    <div class="pdf-info-card-body">
+                        <div style="font-weight:700; font-size:9.5pt;" contenteditable="true" data-placeholder="Klik untuk mengisi Nama Klien / Perusahaan..." onblur="handleDocDataEdit('clientName', this.innerText, this)">${docData.clientName || ''}</div>
+                        ${displayConfig.showAttn ? `<div style="font-weight:600; margin-top:2px;" contenteditable="true" data-placeholder="Attn: Bpk. / Ibu (Bagian Pembelian)..." onblur="handleDocDataEdit('clientAttn', this.innerText, this)">${docData.clientAttn || ''}</div>` : ''}
+                        <div style="margin-top:2px; white-space:pre-line;" contenteditable="true" data-placeholder="Alamat lengkap klien / tujuan pengiriman..." onblur="handleDocDataEdit('clientAddress', this.innerText, this)">${docData.clientAddress || ''}</div>
+                        ${(displayConfig.showProjectLoc) ? `<div class="${!hasLoc ? 'print-hide-empty' : ''}" style="margin-top:3px; font-style:italic;"><strong>Lokasi Proyek / Kirim:</strong> <span contenteditable="true" data-placeholder="Contoh: Franco Surabaya / Loco Pabrik..." onblur="handleDocDataEdit('clientProjectLoc', this.innerText, this)">${docData.clientProjectLoc || ''}</span></div>` : ''}
+                    </div>
+                </div>`;
+            }
+
+            let txHtml = '';
+            if (isQuotation) {
+                const hasTerms = Boolean((docData.quotationPaymentTerms || docData.syaratBayar) && (docData.quotationPaymentTerms || docData.syaratBayar).trim());
+                const hasLead = Boolean(docData.quotationLeadTime && docData.quotationLeadTime.trim());
+                const hasLoc = Boolean(docData.clientProjectLoc && docData.clientProjectLoc.trim());
+
+                txHtml = `
+                <div class="pdf-info-card">
+                    <div class="pdf-info-card-header">KETENTUAN &amp; INFORMASI PENAWARAN:</div>
+                    <div class="pdf-info-card-body">
+                        <table class="pdf-tx-table">
+                            <tbody>
+                                <tr class="${!hasTerms ? 'print-hide-empty' : ''}">
+                                    <td class="tx-label">Syarat Bayar</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: DP 30%, Pelunasan..." onblur="handleDocDataEdit('quotationPaymentTerms', this.innerText, this)">${docData.quotationPaymentTerms || docData.syaratBayar || ''}</td>
+                                </tr>
+                                <tr class="${!hasLead ? 'print-hide-empty' : ''}">
+                                    <td class="tx-label">Waktu Kirim</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: 14 hari kerja..." onblur="handleDocDataEdit('quotationLeadTime', this.innerText, this)">${docData.quotationLeadTime || ''}</td>
+                                </tr>
+                                <tr class="${!hasLoc ? 'print-hide-empty' : ''}">
+                                    <td class="tx-label">Ketentuan Kirim</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: Franco Surabaya..." onblur="handleDocDataEdit('clientProjectLoc', this.innerText, this)">${docData.clientProjectLoc || ''}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            } else if (displayConfig.showTxInfo && !isSJ) {
+                const hasSyarat = Boolean(docData.syaratBayar && docData.syaratBayar.trim());
+                const hasFaktur = Boolean(docData.noFakturPajak && docData.noFakturPajak.trim());
+                const hasSj = Boolean(docData.noSuratJalan && docData.noSuratJalan.trim());
+
+                txHtml = `
+                <div class="pdf-info-card">
+                    <div class="pdf-info-card-header">INFORMASI TRANSAKSI &amp; STATUS:</div>
+                    <div class="pdf-info-card-body">
+                        <table class="pdf-tx-table">
+                            <tbody>
+                                <tr class="${!hasSyarat ? 'print-hide-empty' : ''}">
+                                    <td class="tx-label">Syarat</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: Tempo 30 Hari (Net 30)..." onblur="handleDocDataEdit('syaratBayar', this.innerText, this)">${docData.syaratBayar || ''}</td>
+                                </tr>
+                                <tr class="${!hasFaktur ? 'print-hide-empty' : ''}">
+                                    <td class="tx-label">No. Faktur</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Nomor faktur pajak..." onblur="handleDocDataEdit('noFakturPajak', this.innerText, this)">${docData.noFakturPajak || ''}</td>
+                                </tr>
+                                <tr class="${!hasSj ? 'print-hide-empty' : ''}">
+                                    <td class="tx-label">No. Surat Jalan</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Nomor surat jalan..." onblur="handleDocDataEdit('noSuratJalan', this.innerText, this)">${docData.noSuratJalan || ''}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            } else if (isSJ) {
+                const hasArmada = Boolean(docData.sjArmada && docData.sjArmada.trim());
+                const hasNopol = Boolean(docData.sjNopol && docData.sjNopol.trim());
+                const hasStatus = Boolean(docData.sjStatus && docData.sjStatus.trim());
+
+                txHtml = `
+                <div class="pdf-info-card">
+                    <div class="pdf-info-card-header">INFORMASI EKSPEDISI / ARMADA:</div>
+                    <div class="pdf-info-card-body">
+                        <table class="pdf-tx-table">
+                            <tbody>
+                                <tr class="${!hasArmada ? 'print-hide-empty' : ''}">
+                                    <td class="tx-label">Armada / Mobil</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Jenis kendaraan / armada..." onblur="handleDocDataEdit('sjArmada', this.innerText, this)">${docData.sjArmada || ''}</td>
+                                </tr>
+                                <tr class="${!hasNopol ? 'print-hide-empty' : ''}">
+                                    <td class="tx-label">No. Polisi (Nopol)</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Nomor plat polisi..." onblur="handleDocDataEdit('sjNopol', this.innerText, this)">${docData.sjNopol || ''}</td>
+                                </tr>
+                                <tr class="${!hasStatus ? 'print-hide-empty' : ''}">
+                                    <td class="tx-label">Status Kirim</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Status pengiriman..." onblur="handleDocDataEdit('sjStatus', this.innerText, this)">${docData.sjStatus || ''}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }
+
+            return `
+            <div class="pdf-info-grid">
+                <div>${billToHtml}</div>
+                <div>${txHtml}</div>
+            </div>`;
+        }
+
+        function buildItemsTableHTML(calc) {
+            const isSJ = currentDocType === 'sj';
+
+            if (isSJ) {
+                const rows = items.map((item, idx) => `
+                <tr>
+                    <td style="text-align:center; width:6%;">${idx + 1}</td>
+                    <td>
+                        <div class="item-name-print" contenteditable="true" data-placeholder="Klik untuk menulis nama barang..." onblur="updateItemValue(${item.id}, 'name', this.innerText, this)">${item.name || ''}</div>
+                        ${displayConfig.showColSpec ? `<div class="item-spec-print" contenteditable="true" data-placeholder="Tambah spesifikasi teknis / catatan jika ada..." onblur="updateItemValue(${item.id}, 'spec', this.innerText, this)">${item.spec || ''}</div>` : ''}
+                    </td>
+                    ${displayConfig.showColMaterial ? `<td style="text-align:center; width:20%;" contenteditable="true" data-placeholder="Material/Grade" onblur="updateItemValue(${item.id}, 'material', this.innerText, this)">${item.material || ''}</td>` : ''}
+                    <td style="text-align:center; font-weight:bold; width:12%;" contenteditable="true" data-placeholder="0" onkeydown="handleNumericKeyDown(event)" oninput="formatLiveCurrencyInput(this, val => updateItemQtyDirectLive(${item.id}, val))" onblur="updateItemQtyDirect(${item.id}, this.innerText, this)">${item.qty ? formatNumberThousand(item.qty) : ''}</td>
+                    ${displayConfig.showColUnit ? `<td style="text-align:center; width:12%;" contenteditable="true" data-placeholder="Satuan" onblur="updateItemValue(${item.id}, 'unit', this.innerText, this)">${item.unit || ''}</td>` : ''}
+                    <td style="text-align:center; width:16%; font-size:8.2pt;" contenteditable="true" data-placeholder="Kondisi barang...">Baik &amp; Lengkap</td>
+                    <td class="no-print" style="text-align:center; width:4%;">
+                        <button type="button" onclick="removeItemRow(${item.id})" class="text-rose-500 hover:text-rose-700 font-bold" title="Hapus baris">&times;</button>
+                    </td>
+                </tr>
+                `).join('');
+
+                return `
+                <table class="doc-table">
+                    <thead>
+                        <tr>
+                            <th style="width:6%;">No</th>
+                            <th contenteditable="true" data-placeholder="Judul Kolom Deskripsi" onblur="handleDocDataEdit('colDescTitle', this.innerText, this)">${docData.colDescTitle}</th>
+                            ${displayConfig.showColMaterial ? `<th style="width:20%;">Material/Grade</th>` : ''}
+                            <th style="width:12%;">Qty</th>
+                            ${displayConfig.showColUnit ? `<th style="width:12%;">Satuan</th>` : ''}
+                            <th style="width:16%;">Kondisi / Keterangan</th>
+                            <th class="no-print" style="width:4%;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+                <div class="no-print flex justify-end mb-2">
+                    <button type="button" onclick="addNewItemRow()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 underline">
+                        + Tambah Baris Barang
+                    </button>
+                </div>`;
+            }
+
+            const rows = items.map((item, idx) => {
+                const q = Number(item.qty) || 0;
+                const p = Number(item.price) || 0;
+                const lineTotal = q * p;
+
+                return `
+                <tr>
+                    <td style="text-align:center; width:5%;">${idx + 1}</td>
+                    <td>
+                        <div class="item-name-print" contenteditable="true" data-placeholder="Klik untuk menulis nama barang / pekerjaan..." onblur="updateItemValue(${item.id}, 'name', this.innerText, this)">${item.name || ''}</div>
+                        ${displayConfig.showColSpec ? `<div class="item-spec-print" contenteditable="true" data-placeholder="Tambah spesifikasi teknis / detail..." onblur="updateItemValue(${item.id}, 'spec', this.innerText, this)">${item.spec || ''}</div>` : ''}
+                    </td>
+                    ${displayConfig.showColMaterial ? `<td style="text-align:center; width:16%;" contenteditable="true" data-placeholder="Material/Grade" onblur="updateItemValue(${item.id}, 'material', this.innerText, this)">${item.material || ''}</td>` : ''}
+                    <td style="text-align:center; width:8%; font-weight:600;" contenteditable="true" data-placeholder="0" onkeydown="handleNumericKeyDown(event)" oninput="formatLiveCurrencyInput(this, val => updateItemQtyDirectLive(${item.id}, val))" onblur="updateItemQtyDirect(${item.id}, this.innerText, this)">${q ? formatNumberThousand(q) : ''}</td>
+                    ${displayConfig.showColUnit ? `<td style="text-align:center; width:9%;" contenteditable="true" data-placeholder="Satuan" onblur="updateItemValue(${item.id}, 'unit', this.innerText, this)">${item.unit || ''}</td>` : ''}
+                    <td style="text-align:right; width:16%; white-space:nowrap;" contenteditable="true" data-placeholder="0" onkeydown="handleNumericKeyDown(event)" oninput="formatLiveCurrencyInput(this, val => updateItemPriceDirectLive(${item.id}, val))" onblur="updateItemPriceDirect(${item.id}, this.innerText, this)">${p ? formatNumberThousand(p) : ''}</td>
+                    <td id="line-total-${item.id}" style="text-align:right; font-weight:700; width:18%; white-space:nowrap;">${formatRupiah(lineTotal)}</td>
+                    <td class="no-print" style="text-align:center; width:4%;">
+                        <button type="button" onclick="removeItemRow(${item.id})" class="text-rose-500 hover:text-rose-700 font-bold" title="Hapus baris">&times;</button>
+                    </td>
+                </tr>`;
+            }).join('');
+
+            return `
+            <table class="doc-table">
+                <thead>
+                    <tr>
+                        <th style="width:5%;">No</th>
+                        <th contenteditable="true" data-placeholder="Judul Kolom Deskripsi" onblur="handleDocDataEdit('colDescTitle', this.innerText, this)">${docData.colDescTitle}</th>
+                        ${displayConfig.showColMaterial ? `<th style="width:16%;">Material/Grade</th>` : ''}
+                        <th style="width:8%;">Qty</th>
+                        ${displayConfig.showColUnit ? `<th style="width:9%;">Satuan</th>` : ''}
+                        <th style="width:16%;">Harga Satuan (Rp)</th>
+                        <th style="width:18%;">Total Harga (Rp)</th>
+                        <th class="no-print" style="width:4%;">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+            <div class="no-print flex justify-end mb-2">
+                <button type="button" onclick="addNewItemRow()" class="text-xs font-semibold text-indigo-600 hover:text-indigo-800 underline">
+                    + Tambah Baris Barang / Pekerjaan
+                </button>
+            </div>`;
+        }
+
+        function buildSummaryAndTotalsHTML(calc) {
+            let paymentHtml = '';
+            if (displayConfig.showBankBox) {
+                paymentHtml = `
+                <div class="pdf-payment-box">
+                    <div class="pdf-payment-header" contenteditable="true" data-placeholder="INFORMASI PEMBAYARAN" onblur="handleDocDataEdit('bankBoxTitle', this.innerText, this)">${docData.bankBoxTitle || ''}</div>
+                    <div class="pdf-payment-body">
+                        <table class="pdf-tx-table">
+                            <tbody>
+                                <tr>
+                                    <td class="tx-label">Bank Penerima</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val"><span contenteditable="true" data-placeholder="Nama Bank &amp; Cabang..." onblur="handleDocDataEdit('bankName', this.innerText, this)">${docData.bankName || ''}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="tx-label">No. Rekening</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val"><span contenteditable="true" data-placeholder="Nomor rekening a.n nama pemilik..." onblur="handleDocDataEdit('bankRek', this.innerText, this)">${docData.bankRek || ''}</span></td>
+                                </tr>
+                                <tr>
+                                    <td class="tx-label">Konfirmasi WA</td>
+                                    <td class="tx-colon">:</td>
+                                    <td class="tx-val"><span contenteditable="true" data-placeholder="Nomor kontak WhatsApp..." onblur="handleDocDataEdit('bankWa', this.innerText, this)">${docData.bankWa || ''}</span></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+            }
+
+            let terbilangHtml = '';
+            if (displayConfig.showTerbilangBox) {
+                terbilangHtml = `
+                <div class="pdf-terbilang-box">
+                    <strong>Terbilang:</strong> <em>${calc.terbilang}</em>
+                </div>`;
+            }
+
+            let totalsHtml = '';
+            if (displayConfig.showTotalsTable) {
+                let rows = '';
+                const hasFees = additionalFees.length > 0;
+
+                if (taxScheme === 'non_ppn') {
+                    if (!hasFees) {
+                        if (displayConfig.showRowGrandTotal) {
+                            rows += `<tr class="grand-row"><td>GRAND TOTAL:</td><td style="text-align:right;">${formatRupiah(calc.grandTotal)}</td></tr>`;
+                        }
+                    } else {
+                        if (displayConfig.showRowSubtotal) {
+                            rows += `<tr><td style="font-weight:700;">Subtotal Barang:</td><td style="text-align:right; font-weight:700;">${formatRupiah(calc.rawItemsSubtotal)}</td></tr>`;
+                        }
+                        additionalFees.forEach(fee => {
+                            rows += `
+                            <tr>
+                                <td style="font-weight:600;">
+                                    <span contenteditable="true" data-placeholder="Nama Biaya..." onblur="updateFeeLabel(${fee.id}, this.innerText, this)">${fee.label}</span>
+                                    <button type="button" onclick="removeAdditionalFee(${fee.id})" class="no-print text-rose-500 hover:text-rose-700 font-bold ml-1.5" title="Hapus biaya">&times;</button>
+                                </td>
+                                <td style="text-align:right;" contenteditable="true" data-placeholder="0" onkeydown="handleNumericKeyDown(event)" oninput="formatLiveCurrencyInput(this, val => updateFeeAmountDirectLive(${fee.id}, val))" onblur="updateFeeAmountDirect(${fee.id}, this.innerText)">${fee.amount ? formatNumberThousand(fee.amount) : '0'}</td>
+                            </tr>`;
+                        });
+                        if (displayConfig.showRowGrandTotal) {
+                            rows += `<tr class="grand-row"><td>GRAND TOTAL:</td><td style="text-align:right;">${formatRupiah(calc.grandTotal)}</td></tr>`;
+                        }
+                    }
+                } else {
+                    if (!hasFees) {
+                        if (displayConfig.showRowSubtotal) {
+                            rows += `<tr><td style="font-weight:700;">Total:</td><td style="text-align:right; font-weight:700;">${formatRupiah(calc.rawItemsSubtotal)}</td></tr>`;
+                        }
+                    } else {
+                        if (displayConfig.showRowSubtotal) {
+                            rows += `<tr><td style="font-weight:700;">Subtotal Barang:</td><td style="text-align:right; font-weight:700;">${formatRupiah(calc.rawItemsSubtotal)}</td></tr>`;
+                        }
+                        additionalFees.forEach(fee => {
+                            rows += `
+                            <tr>
+                                <td style="font-weight:600;">
+                                    <span contenteditable="true" data-placeholder="Nama Biaya..." onblur="updateFeeLabel(${fee.id}, this.innerText, this)">${fee.label}</span>
+                                    <button type="button" onclick="removeAdditionalFee(${fee.id})" class="no-print text-rose-500 hover:text-rose-700 font-bold ml-1.5" title="Hapus biaya">&times;</button>
+                                </td>
+                                <td style="text-align:right;" contenteditable="true" data-placeholder="0" onkeydown="handleNumericKeyDown(event)" oninput="formatLiveCurrencyInput(this, val => updateFeeAmountDirectLive(${fee.id}, val))" onblur="updateFeeAmountDirect(${fee.id}, this.innerText)">${fee.amount ? formatNumberThousand(fee.amount) : '0'}</td>
+                            </tr>`;
+                        });
+                        rows += `<tr><td style="font-weight:700;">Total Setelah Biaya:</td><td style="text-align:right; font-weight:700;">${formatRupiah(calc.subtotalAfterFees)}</td></tr>`;
+                    }
+
+                    if (displayConfig.showRowDpp) {
+                        const dppLabel = (taxScheme === 'ppn_reguler') ? 'DPP:' : 'DPP Nilai Lain:';
+                        rows += `<tr><td style="font-weight:600;">${dppLabel}</td><td style="text-align:right;">${formatRupiah(calc.dpp)}</td></tr>`;
+                    }
+                    if (displayConfig.showRowPpn) {
+                        rows += `<tr><td style="font-weight:600;">PPN (12%):</td><td style="text-align:right;">${formatRupiah(calc.ppn)}</td></tr>`;
+                    }
+                    if (displayConfig.showRowGrandTotal) {
+                        rows += `<tr class="grand-row"><td>GRAND TOTAL:</td><td style="text-align:right;">${formatRupiah(calc.grandTotal)}</td></tr>`;
+                    }
+                }
+
+                totalsHtml = `
+                <table class="pdf-totals-table"><tbody>${rows}</tbody></table>
+                <div class="no-print mt-2 text-right">
+                    <button type="button" onclick="addAdditionalFee()" class="text-[11px] font-semibold text-indigo-600 hover:text-indigo-800 underline">
+                        + Tambah Rincian Biaya (Ongkir / Diskon / Lainnya)
+                    </button>
+                </div>`;
+            }
+
+            return `
+            <div class="pdf-summary-split">
+                <div>
+                    ${paymentHtml}
+                    ${terbilangHtml}
+                </div>
+                <div>
+                    ${totalsHtml}
+                </div>
+            </div>`;
+        }
+
+        function buildFooterAndSignaturesHTML() {
+            const isSJ = currentDocType === 'sj';
+            const isQuotation = currentDocType === 'quotation';
+            const ent = PRESET_ENTITIES[currentEntityKey];
+            const stampHTML = getActiveStampHTML();
+
+            if (isSJ) {
+                return `
+                ${displayConfig.showCatatanSJ ? `
+                <div style="font-size:8.3pt; border:1px solid #1e293b; padding:5px 8px; margin-top:8px;">
+                    <strong>Catatan Penerimaan Barang:</strong> <span contenteditable="true" data-placeholder="Tulis catatan kondisi pemeriksaan barang..." onblur="handleDocDataEdit('sjCatatanPemeriksaan', this.innerText, this)">${docData.sjCatatanPemeriksaan || ''}</span>
+                </div>` : ''}
+
+                ${displayConfig.showTtd3Pihak ? `
+                <div class="signature-grid-3">
+                    <div>
+                        <div style="font-weight:700;">Pengirim / Gudang</div>
+                        <div style="font-size:8pt;">${ent.name || ''}</div>
+                        <div class="sig-space">${stampHTML}</div>
+                        <div class="sig-name" contenteditable="true" data-placeholder="(Nama Pengirim / Gudang)" onblur="handleDocDataEdit('sigSignerName', this.innerText, this)">${docData.sigSignerName || ''}</div>
+                        <div contenteditable="true" data-placeholder="Bag. Logistik / Gudang" onblur="handleDocDataEdit('sjPengirimJabatan', this.innerText, this)">${docData.sjPengirimJabatan || ''}</div>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;">Driver / Ekspedisi</div>
+                        <div style="font-size:8pt;">Pembawa Barang</div>
+                        <div class="sig-space"></div>
+                        <div class="sig-name sig-name-blank" contenteditable="true" data-placeholder="(Nama Driver)" onblur="handleDocDataEdit('sjDriverName', this.innerText, this)">${docData.sjDriverName || ''}</div>
+                        <div contenteditable="true" data-placeholder="Driver / Ekspedisi" onblur="handleDocDataEdit('sjDriverNote', this.innerText, this)">${docData.sjDriverNote || ''}</div>
+                    </div>
+                    <div>
+                        <div style="font-weight:700;">Penerima Barang</div>
+                        <div style="font-size:8pt;">Pihak Proyek / Klien</div>
+                        <div class="sig-space"></div>
+                        <div class="sig-name sig-name-blank" contenteditable="true" data-placeholder="(Nama Penerima)" onblur="handleDocDataEdit('sjPenerimaName', this.innerText, this)">${docData.sjPenerimaName || ''}</div>
+                        <div contenteditable="true" data-placeholder="Tanda Tangan &amp; Cap Proyek" onblur="handleDocDataEdit('sjPenerimaNote', this.innerText, this)">${docData.sjPenerimaNote || ''}</div>
+                    </div>
+                </div>` : ''}
+                `;
+            }
+
+            if (isQuotation) {
+                let snkHtml = '';
+                if (displayConfig.showSnK) {
+                    snkHtml = `
+                    <div class="snk-section">
+                        <div class="snk-title" contenteditable="true" data-placeholder="Judul Syarat &amp; Ketentuan" onblur="handleDocDataEdit('snkTitle', this.innerText, this)">${docData.snkTitle || ''}</div>
+                        <div class="snk-content" contenteditable="true" data-placeholder="Klik di sini untuk menuliskan syarat &amp; ketentuan penawaran harga..." onblur="handleDocDataEdit('snkContent', this.innerText, this)">${docData.snkContent || ''}</div>
+                    </div>`;
+                }
+
+                let sigHtml = '';
+                if (displayConfig.showSignature) {
+                    sigHtml = `
+                    <div class="signature-single">
+                        <div style="margin-bottom:2px;" contenteditable="true" data-placeholder="Kota, Tanggal..." onblur="handleDocDataEdit('sigCityDate', this.innerText, this)">${docData.sigCityDate || ''}</div>
+                        <div style="font-weight:700;" contenteditable="true" data-placeholder="Hormat Kami, [Nama Perusahaan]" onblur="handleDocDataEdit('sigGreeting', this.innerText, this)">${docData.sigGreeting || ''}</div>
+                        <div class="sig-space">
+                            ${stampHTML}
+                        </div>
+                        <div class="sig-name" contenteditable="true" data-placeholder="(Nama Penandatangan)" onblur="handleDocDataEdit('sigSignerName', this.innerText, this)">${docData.sigSignerName || ''}</div>
+                        <div style="font-weight:600;" contenteditable="true" data-placeholder="Jabatan" onblur="handleDocDataEdit('sigSignerRole', this.innerText, this)">${docData.sigSignerRole || ''}</div>
+                    </div>`;
+                }
+
+                return `
+                <div class="pdf-bottom-split">
+                    <div>${snkHtml}</div>
+                    <div>${sigHtml}</div>
+                </div>`;
+            }
+
+            let snkHtml = '';
+            if (displayConfig.showSnK) {
+                snkHtml = `
+                <div class="snk-section">
+                    <div class="snk-title" contenteditable="true" data-placeholder="Judul Syarat &amp; Ketentuan" onblur="handleDocDataEdit('snkTitle', this.innerText, this)">${docData.snkTitle || ''}</div>
+                    <div class="snk-content" contenteditable="true" data-placeholder="Klik di sini untuk menuliskan syarat &amp; ketentuan tambahan..." onblur="handleDocDataEdit('snkContent', this.innerText, this)">${docData.snkContent || ''}</div>
+                </div>`;
+            }
+
+            let sigHtml = '';
+            if (displayConfig.showSignature) {
+                sigHtml = `
+                <div class="signature-single">
+                    <div style="margin-bottom:2px;" contenteditable="true" data-placeholder="Kota, Tanggal..." onblur="handleDocDataEdit('sigCityDate', this.innerText, this)">${docData.sigCityDate || ''}</div>
+                    <div style="font-weight:700;" contenteditable="true" data-placeholder="Hormat Kami, [Nama Perusahaan]" onblur="handleDocDataEdit('sigGreeting', this.innerText, this)">${docData.sigGreeting || ''}</div>
+                    <div class="sig-space">
+                        ${stampHTML}
+                    </div>
+                    <div class="sig-name" contenteditable="true" data-placeholder="(Nama Penandatangan)" onblur="handleDocDataEdit('sigSignerName', this.innerText, this)">${docData.sigSignerName || ''}</div>
+                    <div style="font-weight:600;" contenteditable="true" data-placeholder="Jabatan" onblur="handleDocDataEdit('sigSignerRole', this.innerText, this)">${docData.sigSignerRole || ''}</div>
+                </div>`;
+            }
+
+            return `
+            <div class="pdf-bottom-split">
+                <div>${snkHtml}</div>
+                <div>${sigHtml}</div>
+            </div>`;
+        }
+
+        function buildKwitansiA4SheetHTML(calc, addPageBreak = false) {
+            const kwitansiNominal = (docData.kwitansiNominalManual && docData.kwitansiNominalManual > 0) ? docData.kwitansiNominalManual : calc.grandTotal;
+            const kwitansiTerbilangText = terbilangRupiah(kwitansiNominal);
+            const hasRef = Boolean(docData.kwitansiReferensi && docData.kwitansiReferensi.trim());
+
+            return `
+            <div class="a4-sheet ${addPageBreak ? 'page-break-after' : ''}">
+                ${buildHeaderHTML('KWITANSI', 'kwitansi')}
+                <div class="kwitansi-frame">
+                    <table class="kwitansi-table">
+                        <tr>
+                            <td class="kw-label">Telah Terima Dari</td>
+                            <td class="kw-colon">:</td>
+                            <td class="kw-val" style="font-weight:700;" contenteditable="true" data-placeholder="Klik untuk menulis nama pembayar / perusahaan..." onblur="handleDocDataEdit('kwitansiTerimaDari', this.innerText, this)">${docData.kwitansiTerimaDari || docData.clientName || ''}</td>
+                        </tr>
+                        <tr>
+                            <td class="kw-label">Uang Sejumlah</td>
+                            <td class="kw-colon">:</td>
+                            <td style="padding:4px 0;">
+                                <div id="kwitansiTerbilangParallelogram" class="kwitansi-terbilang-parallelogram">
+                                    ${kwitansiTerbilangText}
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="kw-label">Untuk Pembayaran</td>
+                            <td class="kw-colon">:</td>
+                            <td class="kw-val" contenteditable="true" data-placeholder="Pembayaran pengadaan barang / jasa..." onblur="handleDocDataEdit('kwitansiUntukBayar', this.innerText, this)">${docData.kwitansiUntukBayar || ''}</td>
+                        </tr>
+                        <tr class="${!hasRef ? 'print-hide-empty' : ''}">
+                            <td class="kw-label">Referensi Tagihan</td>
+                            <td class="kw-colon">:</td>
+                            <td class="kw-val" style="white-space:pre-line;" contenteditable="true" data-placeholder="Tulis referensi tagihan (opsional, misal: No. Inv, No. PO, No. SJ)..." onblur="handleKwitansiRefEdit(this)">${docData.kwitansiReferensi || ''}</td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-top:11px;">
+                        <span style="font-weight:700; font-size:9.5pt; margin-right:8px;">JUMLAH TERIMA:</span>
+                        <div id="kwitansiNominalDisplayBox" class="kwitansi-nominal-box cursor-text" contenteditable="true" data-placeholder="Rp 0" oninput="handleKwitansiNominalInput(this.innerText)" onblur="handleKwitansiNominalBlur(this.innerText)">
+                            ${formatRupiah(kwitansiNominal)}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="klausul-kwitansi" contenteditable="true" data-placeholder="Tulis klausul kwitansi..." onblur="handleDocDataEdit('kwitansiKlausul', this.innerText, this)">
+                    <strong>Klausul:</strong> ${docData.kwitansiKlausul}
+                </div>
+
+                <div style="margin-top:14px;">
+                    ${buildFooterAndSignaturesHTML()}
+                </div>
+            </div>`;
+        }
+
+        function renderDocumentView() {
+            const host = document.getElementById('a4DocumentHost');
+            if (!host) return;
+
+            const calc = calculateCurrentTotals();
+
+            if (currentDocType === 'bundle') {
+                host.innerHTML = `
+                <div class="a4-sheet page-break-after">
+                    ${buildHeaderHTML('INVOICE', 'invoice')}
+                    ${buildMidInfoGridHTML()}
+                    ${buildItemsTableHTML(calc)}
+                    ${buildSummaryAndTotalsHTML(calc)}
+                    ${buildFooterAndSignaturesHTML()}
+                </div>` + buildKwitansiA4SheetHTML(calc, false);
             } else if (currentDocType === 'kwitansi') {
-                noDoc = docData.kwitansiNo || docData.noDokumen;
+                host.innerHTML = buildKwitansiA4SheetHTML(calc, false);
+            } else if (currentDocType === 'sj') {
+                host.innerHTML = `
+                <div class="a4-sheet">
+                    ${buildHeaderHTML('SURAT JALAN / DO', 'sj')}
+                    ${buildMidInfoGridHTML()}
+                    <div style="font-size:8.8pt; margin-bottom:5px;">
+                        Harap diterima dengan baik barang-barang yang tercantum di bawah ini:
+                    </div>
+                    ${buildItemsTableHTML(calc)}
+                    ${buildFooterAndSignaturesHTML()}
+                </div>`;
             } else if (currentDocType === 'quotation') {
-                noDoc = docData.quotationNo || docData.noDokumen;
+                host.innerHTML = `
+                <div class="a4-sheet">
+                    ${buildHeaderHTML('SURAT PENAWARAN', 'quotation')}
+                    ${buildMidInfoGridHTML()}
+                    ${buildItemsTableHTML(calc)}
+                    ${buildSummaryAndTotalsHTML(calc)}
+                    ${buildFooterAndSignaturesHTML()}
+                </div>`;
+            } else if (currentDocType === 'po') {
+                host.innerHTML = `
+                <div class="a4-sheet">
+                    ${buildHeaderHTML('PURCHASE ORDER (PO)', 'po')}
+                    ${buildMidInfoGridHTML()}
+                    ${buildItemsTableHTML(calc)}
+                    ${buildSummaryAndTotalsHTML(calc)}
+                    ${buildFooterAndSignaturesHTML()}
+                </div>`;
             } else {
-                noDoc = docData.noDokumen;
+                host.innerHTML = `
+                <div class="a4-sheet">
+                    ${buildHeaderHTML('INVOICE', 'invoice')}
+                    ${buildMidInfoGridHTML()}
+                    ${buildItemsTableHTML(calc)}
+                    ${buildSummaryAndTotalsHTML(calc)}
+                    ${buildFooterAndSignaturesHTML()}
+                </div>`;
             }
-            noDoc = (noDoc || 'NoDoc').replace(/[\/\\:*?"<>|]/g, '-').replace(/-+/g, '-').trim();
-
-            const monthNames = {
-                'januari': 'Jan', 'februari': 'Feb', 'maret': 'Mar', 'april': 'Apr',
-                'mei': 'Mei', 'juni': 'Jun', 'juli': 'Jul', 'agustus': 'Agu',
-                'september': 'Sep', 'oktober': 'Okt', 'november': 'Nov', 'desember': 'Des'
-            };
-            const tglLower = (docData.tglDokumen || '').toLowerCase();
-            let foundMonth = '';
-            for (const [full, abbr] of Object.entries(monthNames)) {
-                if (tglLower.includes(full)) {
-                    foundMonth = abbr;
-                    break;
-                }
-            }
-            const yearMatch = (docData.tglDokumen || '').match(/\b(20\d\d)\b/);
-            const foundYear = yearMatch ? yearMatch[1] : (new Date()).getFullYear();
-
-            let monthYear = '';
-            if (foundMonth) {
-                monthYear = `${foundMonth} ${foundYear}`;
-            } else {
-                const now = new Date();
-                const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                monthYear = `${shortMonths[now.getMonth()]} ${now.getFullYear()}`;
-            }
-
-            return `${docTypeLabel} - ${client} - ${noDoc} - ${monthYear}`;
         }
-
-        function updateDocumentTitlePreview() {
-            const fileName = getFormattedDocumentFileName();
-            document.title = fileName;
-        }
-
-        function printDocumentWithAutoName() {
-            saveCurrentDataToStorage();
-            updateDocumentTitlePreview();
-            window.print();
-        }
-
-        function saveDraftManual() {
-            saveCurrentDataToStorage();
-            updateDocumentTitlePreview();
-            try {
-                const draftState = {
-                    currentDocType,
-                    currentEntityKey,
-                    taxScheme,
-                    docData,
-                    items,
-                    additionalFees,
-                    savedAt: new Date().toISOString()
-                };
-                localStorage.setItem('invoice_current_draft', JSON.stringify(draftState));
-            } catch(e) {}
-            showToast(`💾 Draf berhasil disimpan: ${document.title}`);
-        }
-
-        /* =========================================================================
-           EVENT HANDLER & INPUT MANIPULATION
-           ========================================================================= */
 
         function updateItemPriceDirectLive(id, val) {
             const item = items.find(i => i.id === id);
@@ -1497,10 +2206,9 @@
                 }
             }
 
-            if (key === 'noDokumen' || key === 'noPO' || key === 'noSuratJalan' || key === 'jatuhTempo' || key === 'noFakturPajak' || key === 'quotationValidity' || key === 'quotationPerihal') {
+            if (key === 'noDokumen' || key === 'noPO' || key === 'noSuratJalan' || key === 'clientName' || key === 'jatuhTempo' || key === 'noFakturPajak' || key === 'quotationValidity' || key === 'quotationPerihal' || key === 'sjDriverName' || key === 'sjPenerimaName') {
                 renderDocumentView();
             }
-            updateDocumentTitlePreview();
         }
 
         function handleTextEdit(entKey, value, el = null) {
@@ -1685,6 +2393,99 @@
             renderDocumentView();
         }
 
+        async function copyTableToWord() {
+            const calc = calculateCurrentTotals();
+            const isSJ = currentDocType === 'sj';
+
+            let tableHtml = '';
+            if (isSJ) {
+                const rows = items.map((item, idx) => `
+                <tr>
+                    <td style="border:1px solid #000; text-align:center;">${idx + 1}</td>
+                    <td style="border:1px solid #000; font-weight:bold;">${item.name || '-'}<br><small style="font-weight:normal;">${item.spec || ''}</small></td>
+                    ${displayConfig.showColMaterial ? `<td style="border:1px solid #000; text-align:center;">${item.material || '-'}</td>` : ''}
+                    <td style="border:1px solid #000; text-align:center; font-weight:bold;">${formatNumberThousand(item.qty)}</td>
+                    <td style="border:1px solid #000; text-align:center;">${item.unit || '-'}</td>
+                    <td style="border:1px solid #000; text-align:center;">Baik &amp; Lengkap</td>
+                </tr>`).join('');
+
+                tableHtml = `
+                <table style="width:100%; border-collapse:collapse; border:1px solid #000; font-family:Arial,sans-serif; font-size:10pt;">
+                    <thead>
+                        <tr style="background:#1e293b; color:#fff;">
+                            <th style="border:1px solid #000; padding:6px;">No</th>
+                            <th style="border:1px solid #000; padding:6px;">Deskripsi</th>
+                            ${displayConfig.showColMaterial ? `<th style="border:1px solid #000; padding:6px;">Material/Grade</th>` : ''}
+                            <th style="border:1px solid #000; padding:6px;">Qty</th>
+                            <th style="border:1px solid #000; padding:6px;">Satuan</th>
+                            <th style="border:1px solid #000; padding:6px;">Kondisi</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+            } else {
+                const rows = items.map((item, idx) => `
+                <tr>
+                    <td style="border:1px solid #000; text-align:center;">${idx + 1}</td>
+                    <td style="border:1px solid #000; font-weight:bold;">${item.name || '-'}<br><small style="font-weight:normal;">${item.spec || ''}</small></td>
+                    ${displayConfig.showColMaterial ? `<td style="border:1px solid #000; text-align:center;">${item.material || '-'}</td>` : ''}
+                    <td style="border:1px solid #000; text-align:center;">${formatNumberThousand(item.qty)}</td>
+                    <td style="border:1px solid #000; text-align:center;">${item.unit || '-'}</td>
+                    <td style="border:1px solid #000; text-align:right;">${formatRupiah(item.price)}</td>
+                    <td style="border:1px solid #000; text-align:right; font-weight:bold;">${formatRupiah(item.qty * item.price)}</td>
+                </tr>`).join('');
+
+                let feeRows = '';
+                additionalFees.forEach(fee => {
+                    feeRows += `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">${fee.label}:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(fee.amount)}</td></tr>`;
+                });
+
+                tableHtml = `
+                <table style="width:100%; border-collapse:collapse; border:1px solid #000; font-family:Arial,sans-serif; font-size:10pt;">
+                    <thead>
+                        <tr style="background:#1e293b; color:#fff;">
+                            <th style="border:1px solid #000; padding:6px;">No</th>
+                            <th style="border:1px solid #000; padding:6px;">Deskripsi</th>
+                            ${displayConfig.showColMaterial ? `<th style="border:1px solid #000; padding:6px;">Material/Grade</th>` : ''}
+                            <th style="border:1px solid #000; padding:6px;">Qty</th>
+                            <th style="border:1px solid #000; padding:6px;">Satuan</th>
+                            <th style="border:1px solid #000; padding:6px;">Harga Satuan</th>
+                            <th style="border:1px solid #000; padding:6px;">Total Harga</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                        ${additionalFees.length > 0 ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right; font-weight:bold;">Subtotal Barang:</td><td style="border:1px solid #000; text-align:right; font-weight:bold;">${formatRupiah(calc.rawItemsSubtotal)}</td></tr>` : ''}
+                        ${feeRows}
+                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">Total:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.subtotalAfterFees)}</td></tr>` : ''}
+                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">DPP:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.dpp)}</td></tr>` : ''}
+                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">PPN (12%):</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.ppn)}</td></tr>` : ''}
+                        <tr style="background:#f1f5f9; font-weight:bold;"><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">GRAND TOTAL:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.grandTotal)}</td></tr>
+                    </tbody>
+                </table>`;
+            }
+
+            const fullHtml = `<html><head><meta charset="utf-8"></head><body>${tableHtml}</body></html>`;
+
+            try {
+                if (navigator.clipboard && window.ClipboardItem) {
+                    const htmlBlob = new Blob([fullHtml], { type: 'text/html' });
+                    const textBlob = new Blob([tableHtml.replace(/<[^>]+>/g, ' ')], { type: 'text/plain' });
+                    await navigator.clipboard.write([new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob })]);
+                    showToast("📋 Tabel rapi berhasil disalin! Tinggal Paste (Ctrl+V) di Microsoft Word atau Google Docs.");
+                    return;
+                }
+            } catch (err) {}
+
+            const tempTa = document.createElement('textarea');
+            tempTa.value = tableHtml;
+            document.body.appendChild(tempTa);
+            tempTa.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTa);
+            showToast("📋 Tabel berhasil disalin!");
+        }
+
         function resetAllToBlank() {
             const today = getFormattedIndonesianDate();
             const city = "Klaten";
@@ -1793,18 +2594,8 @@
             showToast("Contoh data PT Nindya Karya dimuat!");
         }
 
-        // Listener klik di luar area suggestion untuk menutup dropdown
-        document.addEventListener('mousedown', function(e) {
-            const dd = document.getElementById('liveSuggestDropdown');
-            if (dd && !e.target.closest('#liveSuggestDropdown') && !e.target.closest('[contenteditable="true"]')) {
-                hideSuggestDropdown();
-            }
-        });
-
         window.onload = function() {
             resetAllToBlank();
-            refreshDatalists();
-            updateMemoryStatusUI();
         };
     </script>
 </body></html>
