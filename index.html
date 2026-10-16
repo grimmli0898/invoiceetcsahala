@@ -1,17 +1,23 @@
 <!DOCTYPE html>
-<html lang="id"><head>
+<html lang="id">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistem Generator Dokumen Proyek &amp; Surat Jalan Interaktif</title>
+    <title>Generator Dokumen Proyek & Faktur Penagihan</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
             background-color: #f1f5f9;
             color: #0f172a;
+            -webkit-font-smoothing: antialiased;
         }
 
         /* Styling scrollbar */
@@ -35,13 +41,13 @@
             width: 210mm;
             min-height: 297mm;
             background: #ffffff;
-            color: #0f172a;
+            color: #1a1a1a;
             padding: 12mm 15mm;
             box-shadow: 0 10px 30px -5px rgba(15, 23, 42, 0.14), 0 4px 10px -2px rgba(15, 23, 42, 0.08);
             border: 1px solid #cbd5e1;
             border-radius: 4px;
-            font-family: Arial, Calibri, Helvetica, sans-serif;
-            font-size: 9pt;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+            font-size: 8.8pt;
             line-height: 1.35;
             position: relative;
             margin: 0 auto;
@@ -50,12 +56,12 @@
         /* Efek Inline Editable pada Preview */
         [contenteditable="true"] {
             outline: none;
-            transition: all 0.15s ease;
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
             border-radius: 2px;
-            padding: 0.5px 2px;
+            padding: 1px 3px;
         }
         [contenteditable="true"]:hover {
-            background-color: rgba(99, 102, 241, 0.07);
+            background-color: rgba(99, 102, 241, 0.08);
             box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.35);
             cursor: text;
         }
@@ -81,7 +87,7 @@
             align-items: start;
             gap: 2%;
             padding-bottom: 9px;
-            border-bottom: 2.5px solid #1e293b;
+            border-bottom: 2px solid #334155;
             margin-bottom: 11px;
         }
 
@@ -118,14 +124,14 @@
         .pdf-company-sub {
             font-size: 8.8pt;
             font-weight: 700;
-            color: #334155;
+            color: #475569;
             text-transform: uppercase;
             margin-top: 1px;
         }
 
         .pdf-company-meta {
             font-size: 8pt;
-            color: #1e293b;
+            color: #334155;
             margin-top: 3px;
             line-height: 1.35;
         }
@@ -148,7 +154,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 8.5pt;
-            border: 1px solid #94a3b8;
+            border: 1px solid #cbd5e1;
         }
 
         .pdf-top-meta-table td {
@@ -157,25 +163,29 @@
         }
 
         .pdf-top-meta-table td.tm-label {
-            background-color: #f8fafc;
+            background-color: #f1f3f5;
             font-weight: 700;
-            color: #1e293b;
+            color: #1a1a1a;
             width: 44%;
             text-align: left;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .pdf-top-meta-table td.tm-colon {
-            background-color: #f8fafc;
+            background-color: #f1f3f5;
             font-weight: 700;
-            color: #1e293b;
+            color: #1a1a1a;
             width: 5%;
             text-align: center;
             padding: 3px 0;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .pdf-top-meta-table td.tm-val {
             font-weight: 600;
-            color: #0f172a;
+            color: #1a1a1a;
             text-align: left;
             width: 51%;
         }
@@ -190,25 +200,30 @@
         }
 
         .pdf-info-card {
-            border: 1px solid #94a3b8;
+            border: 1px solid #cbd5e1;
             background-color: #ffffff;
+            border-radius: 2px;
+            overflow: hidden;
         }
 
         .pdf-info-card-header {
-            background-color: #1e293b;
-            color: #ffffff;
+            background-color: #f1f3f5;
+            color: #1a1a1a;
             font-size: 8.2pt;
             font-weight: 700;
             text-transform: uppercase;
-            padding: 3.5px 8px;
+            padding: 4px 8px;
             letter-spacing: 0.4px;
+            border-bottom: 1px solid #cbd5e1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .pdf-info-card-body {
             padding: 6px 8px;
             font-size: 8.5pt;
             line-height: 1.38;
-            color: #0f172a;
+            color: #1a1a1a;
         }
 
         .pdf-tx-table {
@@ -226,18 +241,20 @@
             font-weight: 700;
             width: 38%;
             text-align: left;
+            color: #334155;
         }
 
         .pdf-tx-table td.tx-colon {
             font-weight: 700;
             width: 6%;
             text-align: center;
-            color: #1e293b;
+            color: #475569;
         }
 
         .pdf-tx-table td.tx-val {
             width: 56%;
             text-align: left;
+            color: #1a1a1a;
         }
 
         /* Tabel Produk & Jasa */
@@ -247,13 +264,13 @@
             margin-top: 4px;
             margin-bottom: 9px;
             font-size: 8.6pt;
-            color: #000000;
+            color: #1a1a1a;
         }
 
         .doc-table th,
         .doc-table td {
-            border: 1px solid #1e293b;
-            padding: 4.5px 6.5px;
+            border: 1px solid #cbd5e1;
+            padding: 5px 6.5px;
             vertical-align: top;
         }
 
@@ -261,20 +278,23 @@
             font-weight: 700;
             text-align: center;
             font-size: 8.3pt;
-            background-color: #1e293b;
-            color: #ffffff;
+            background-color: #f1f3f5;
+            color: #1a1a1a;
+            border: 1px solid #cbd5e1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .item-name-print {
             font-weight: 700;
             font-size: 8.8pt;
-            color: #000000;
+            color: #1a1a1a;
         }
 
         .item-spec-print {
             font-weight: 400;
             font-size: 8pt;
-            color: #334155;
+            color: #475569;
             margin-top: 2px;
             line-height: 1.28;
         }
@@ -291,18 +311,22 @@
         }
 
         .pdf-payment-box {
-            border: 1px solid #1e293b;
+            border: 1px solid #cbd5e1;
             margin-bottom: 8px;
+            border-radius: 2px;
+            overflow: hidden;
         }
 
         .pdf-payment-header {
-            background-color: #f1f5f9;
-            border-bottom: 1px solid #1e293b;
-            padding: 3.5px 8px;
+            background-color: #f1f3f5;
+            border-bottom: 1px solid #cbd5e1;
+            padding: 4px 8px;
             font-size: 8.1pt;
             font-weight: 700;
             text-transform: uppercase;
-            color: #0f172a;
+            color: #1a1a1a;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .pdf-payment-body {
@@ -312,30 +336,36 @@
         }
 
         .pdf-terbilang-box {
-            border: 1px solid #1e293b;
+            border: 1px solid #cbd5e1;
             background-color: #f8fafc;
             padding: 5px 8px;
             font-size: 8.4pt;
             line-height: 1.32;
+            color: #1a1a1a;
+            border-radius: 2px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .pdf-totals-table {
             width: 100%;
             border-collapse: collapse;
             font-size: 8.8pt;
-            border: 1px solid #1e293b;
+            border: 1px solid #cbd5e1;
         }
 
         .pdf-totals-table td {
-            border: 1px solid #1e293b;
-            padding: 4px 8px;
+            border: 1px solid #cbd5e1;
+            padding: 4.5px 8px;
         }
 
         .pdf-totals-table tr.grand-row {
-            background-color: #1e293b;
-            color: #ffffff;
+            background-color: #e9ecef;
+            color: #1a1a1a;
             font-weight: 800;
             font-size: 9.5pt;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         /* Split Footer */
@@ -351,7 +381,7 @@
 
         .snk-section {
             font-size: 8.1pt;
-            color: #0f172a;
+            color: #1a1a1a;
         }
 
         .snk-title {
@@ -409,7 +439,7 @@
         }
 
         .kwitansi-frame {
-            border: 2px solid #000000;
+            border: 1.5px solid #334155;
             padding: 12px 14px;
             margin-top: 8px;
         }
@@ -437,32 +467,36 @@
 
         .kwitansi-table td.kw-val {
             width: 73%;
-            border-bottom: 1px dotted #000000;
+            border-bottom: 1px dotted #64748b;
         }
 
         .kwitansi-terbilang-parallelogram {
-            background-color: #f2f2f2;
-            border: 1px solid #000000;
+            background-color: #f1f3f5;
+            border: 1px solid #cbd5e1;
             padding: 6px 10px;
             font-weight: 700;
             font-style: italic;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .kwitansi-nominal-box {
             display: inline-block;
-            border: 2px solid #000000;
+            border: 1.5px solid #334155;
             padding: 6px 16px;
             font-size: 11.5pt;
             font-weight: 700;
-            background-color: #f2f2f2;
+            background-color: #f1f3f5;
             margin-top: 8px;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .klausul-kwitansi {
             font-size: 7.8pt;
             font-style: italic;
             margin-top: 8px;
-            border: 1px solid #000000;
+            border: 1px solid #cbd5e1;
             padding: 5px 8px;
         }
 
@@ -541,16 +575,6 @@
                 display: none !important;
             }
         }
-
-        .kw-ref-stack {
-            display: flex;
-            flex-direction: column;
-            gap: 2.5px;
-        }
-        .kw-ref-line {
-            font-size: 8.8pt;
-            line-height: 1.32;
-        }
     </style>
 </head>
 <body class="min-h-screen pb-12">
@@ -565,18 +589,18 @@
                     <h1 class="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-2">
                         <span>Sistem Generator Dokumen Proyek &amp; Penagihan</span>
                         <span class="text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 px-2 py-0.5 rounded-full">
-                            Tulis Langsung di Preview
+                            Navigasi Tab Excel Aktif
                         </span>
                     </h1>
                     <p class="text-[11px] text-slate-300">
-                        Klik &amp; ketik langsung teks di atas kertas • Panel kiri adaptif otomatis sesuai dokumen
+                        Klik &amp; ketik teks di atas kertas • Copy-paste otomatis plain text • Tab mulus seperti spreadsheet
                     </p>
                 </div>
             </div>
 
             <div class="flex flex-wrap items-center gap-2">
                 <button type="button" onclick="fillPdfExactData()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-slate-950 transition shadow-sm">
-                    <span>📄</span> Contoh PDF Nindya Karya
+                    <span>📄</span> Contoh PT Nindya Karya
                 </button>
                 <button type="button" onclick="resetAllToBlank()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-500/20 hover:bg-rose-600 text-rose-200 hover:text-white border border-rose-500/40 transition">
                     <span>↺</span> Kosongkan (0)
@@ -584,7 +608,10 @@
                 <button type="button" onclick="copyTableToWord()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition shadow-sm">
                     <span>📋</span> Salin Tabel ke Word
                 </button>
-                <button type="button" onclick="window.print()" class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md">
+                <button type="button" onclick="saveDraft()" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white transition shadow-sm">
+                    <span>💾</span> Simpan Draf
+                </button>
+                <button type="button" onclick="printDocument()" class="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-md">
                     <span>🖨️</span> Cetak A4 / PDF
                 </button>
             </div>
@@ -603,7 +630,7 @@
                         <span class="w-5 h-5 rounded-md bg-indigo-50 text-indigo-600 text-xs flex items-center justify-center font-bold">1</span>
                         Format Dokumen
                     </span>
-                    <span class="text-[11px] text-slate-500">Panel kiri otomatis menyesuaikan</span>
+                    <span class="text-[11px] text-slate-500">Panel kiri adaptif otomatis</span>
                 </div>
 
                 <div class="space-y-3">
@@ -660,7 +687,7 @@
                         <div class="flex items-center gap-2">
                             <input type="file" id="stampUploadInput" accept="image/*" onchange="handleCustomStampUpload(event)" class="w-full text-[11px] text-slate-600 file:mr-2 file:py-1 file:px-2.5 file:rounded-md file:border-0 file:text-[11px] file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 border border-slate-300 rounded-lg p-1 bg-white">
                         </div>
-                        <p class="text-[10px] text-slate-500">Unggah file PNG transparan stempel Anda atau gunakan tombol upload di kertas.</p>
+                        <p class="text-[10px] text-slate-500">Unggah file PNG transparan stempel Anda.</p>
                     </div>
 
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
@@ -722,7 +749,7 @@
                 <div class="flex items-center justify-between">
                     <div>
                         <div class="text-xs font-bold text-slate-800 uppercase">Daftar Komponen / Barang</div>
-                        <div class="text-[11px] text-slate-500">Klik baris di preview untuk edit teks/harga</div>
+                        <div class="text-[11px] text-slate-500">Tekan Tab di baris terakhir untuk auto-tambah</div>
                     </div>
                     <button type="button" onclick="addNewItemRow()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition shadow-sm">
                         + Tambah Baris
@@ -739,8 +766,8 @@
                 <div class="flex items-center gap-2.5">
                     <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping"></span>
                     <div class="text-xs">
-                        <span class="font-bold text-white">Mode Edit Langsung Aktif:</span>
-                        <span class="text-indigo-200 ml-1">Silakan klik langsung pada teks, nama klien, tabel, atau nomor di kertas untuk mengetik!</span>
+                        <span class="font-bold text-white">Mode Edit Langsung &amp; Keyboard Excel:</span>
+                        <span class="text-indigo-200 ml-1">Klik langsung untuk mengetik • Paste plain-text otomatis • Tekan Tab untuk navigasi sel</span>
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
@@ -946,6 +973,192 @@
 
         let additionalFees = [];
 
+        /* ==================== FITUR 2: STRIP RICH TEXT SAAT PASTE ==================== */
+        document.addEventListener('paste', function(e) {
+            const target = e.target;
+            const editableEl = target ? target.closest('[contenteditable="true"]') : null;
+            if (editableEl) {
+                e.preventDefault();
+                const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+                if (document.queryCommandSupported && document.queryCommandSupported('insertText')) {
+                    document.execCommand('insertText', false, text);
+                } else {
+                    const sel = window.getSelection();
+                    if (sel && sel.rangeCount > 0) {
+                        const range = sel.getRangeAt(0);
+                        range.deleteContents();
+                        const textNode = document.createTextNode(text);
+                        range.insertNode(textNode);
+                        range.setStartAfter(textNode);
+                        range.collapse(true);
+                        sel.removeAllRanges();
+                        sel.addRange(range);
+                    }
+                }
+                editableEl.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+
+        /* ==================== FITUR 3: NAVIGASI KEYBOARD TAB EXCEL ==================== */
+        function focusEditableCell(el, selectAll = true) {
+            if (!el) return;
+            el.focus();
+            if (selectAll && window.getSelection) {
+                try {
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    range.selectNodeContents(el);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } catch (err) {}
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Tab') {
+                const activeEl = document.activeElement;
+                if (!activeEl) return;
+
+                const cell = activeEl.closest('.doc-table tbody [contenteditable="true"]');
+                if (!cell) return;
+
+                const tableBody = cell.closest('tbody');
+                if (!tableBody) return;
+
+                // Ambil semua elemen editable dalam tbody yang terlihat
+                const allInputs = Array.from(tableBody.querySelectorAll('[contenteditable="true"]'))
+                    .filter(el => el.offsetParent !== null);
+
+                const currentIndex = allInputs.indexOf(cell);
+                if (currentIndex === -1) return;
+
+                e.preventDefault();
+
+                if (!e.shiftKey) {
+                    // TAB MAJU
+                    if (currentIndex < allInputs.length - 1) {
+                        focusEditableCell(allInputs[currentIndex + 1], true);
+                    } else {
+                        // Jika berada di kolom input terakhir pada baris paling bawah, otomatis buat baris baru
+                        addNewItemRow(true);
+                    }
+                } else {
+                    // SHIFT + TAB MUNDUR
+                    if (currentIndex > 0) {
+                        focusEditableCell(allInputs[currentIndex - 1], true);
+                    }
+                }
+            }
+        });
+
+        /* ==================== FITUR 4: OTOMASI PENAMAAN DOKUMEN / FILE ==================== */
+        function sanitizeFileNamePart(str) {
+            if (!str) return '';
+            return str
+                .replace(/[/\\:*?"<>|]/g, '-')
+                .replace(/\s+/g, ' ')
+                .replace(/-+/g, '-')
+                .trim();
+        }
+
+        function getBulanTahunDoc() {
+            const tgl = (docData.tglDokumen || '').trim();
+            const monthMap = {
+                'januari': 'Jan', 'jan': 'Jan',
+                'februari': 'Feb', 'feb': 'Feb',
+                'maret': 'Mar', 'mar': 'Mar',
+                'april': 'Apr', 'apr': 'Apr',
+                'mei': 'Mei',
+                'juni': 'Jun', 'jun': 'Jun',
+                'juli': 'Jul', 'jul': 'Jul',
+                'agustus': 'Ags', 'ags': 'Ags', 'agt': 'Ags',
+                'september': 'Sep', 'sep': 'Sep',
+                'oktober': 'Okt', 'okt': 'Okt',
+                'november': 'Nov', 'nov': 'Nov',
+                'desember': 'Des', 'des': 'Des'
+            };
+
+            if (tgl) {
+                const parts = tgl.toLowerCase().split(/[\s,/-]+/);
+                let foundMonth = null;
+                let foundYear = null;
+                for (const p of parts) {
+                    if (monthMap[p]) foundMonth = monthMap[p];
+                    if (/^\d{4}$/.test(p)) foundYear = p;
+                }
+                if (foundMonth && foundYear) {
+                    return `${foundMonth} ${foundYear}`;
+                }
+            }
+            const now = new Date();
+            const shortMonths = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Ags', 'Sep', 'Okt', 'Nov', 'Des'];
+            return `${shortMonths[now.getMonth()]} ${now.getFullYear()}`;
+        }
+
+        function updateDocumentTitleAndFileName() {
+            const docTypeNames = {
+                invoice: 'Invoice',
+                sj: 'Surat Jalan',
+                kwitansi: 'Kwitansi',
+                bundle: 'Bundle Inv-Kwi',
+                quotation: 'Surat Penawaran',
+                po: 'Purchase Order'
+            };
+
+            const namaSurat = docTypeNames[currentDocType] || 'Dokumen';
+            const namaKlien = sanitizeFileNamePart(docData.clientName || 'Klien');
+
+            let noDok = docData.noDokumen;
+            if (currentDocType === 'kwitansi') noDok = docData.kwitansiNo || docData.noDokumen;
+            else if (currentDocType === 'quotation') noDok = docData.quotationNo || docData.noDokumen;
+            else if (currentDocType === 'sj') noDok = docData.noSuratJalan || docData.noDokumen;
+            noDok = sanitizeFileNamePart(noDok || 'No-Dok');
+
+            const bulanTahun = getBulanTahunDoc();
+
+            const fileName = `${namaSurat} - ${namaKlien} - ${noDok} - ${bulanTahun}`;
+            document.title = fileName;
+            return fileName;
+        }
+
+        window.addEventListener('beforeprint', function() {
+            updateDocumentTitleAndFileName();
+        });
+
+        function printDocument() {
+            const fileName = updateDocumentTitleAndFileName();
+            showToast(`Mempersiapkan PDF: ${fileName}`);
+            setTimeout(() => {
+                window.print();
+            }, 60);
+        }
+
+        function saveDraft() {
+            const fileName = updateDocumentTitleAndFileName();
+            const state = {
+                docData,
+                items,
+                additionalFees,
+                currentDocType,
+                currentEntityKey,
+                taxScheme,
+                displayConfig
+            };
+
+            localStorage.setItem('generator_invoice_draft', JSON.stringify(state));
+
+            // Ekspor file JSON sebagai draf cadangan
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `${fileName}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+
+            showToast(`✓ Draf berhasil disimpan: ${fileName}`);
+        }
+
         function getActiveLogoHTML() {
             if (customLogoDataUrl) {
                 return `<img src="${customLogoDataUrl}" alt="Logo Perusahaan" class="max-w-[66px] max-h-[66px] object-contain">`;
@@ -963,12 +1176,12 @@
                 return `
                 <div class="relative flex items-center justify-center w-full h-full group">
                     <img src="${customStampDataUrl}" alt="Stempel Perusahaan" class="stamp-container-img">
-                    <button type="button" onclick="document.getElementById('stampUploadInput').click()" class="no-print absolute -top-1 -right-1 w-6 h-6 bg-white border border-slate-300 rounded-full shadow-sm hover:bg-slate-100 text-indigo-600 text-xs flex items-center justify-center transition cursor-pointer" title="Ganti file stempel">✎</button>
+                    <button type="button" tabindex="-1" onclick="document.getElementById('stampUploadInput').click()" class="no-print absolute -top-1 -right-1 w-6 h-6 bg-white border border-slate-300 rounded-full shadow-sm hover:bg-slate-100 text-indigo-600 text-xs flex items-center justify-center transition cursor-pointer" title="Ganti file stempel">✎</button>
                 </div>`;
             }
             return `
             <div class="no-print flex items-center justify-center w-full h-full">
-                <button type="button" onclick="document.getElementById('stampUploadInput').click()" class="inline-flex items-center gap-1 px-3 py-1 text-[11px] font-semibold text-slate-500 hover:text-indigo-600 border border-dashed border-slate-300 hover:border-indigo-400 rounded-lg bg-slate-50/70 hover:bg-indigo-50/70 transition cursor-pointer shadow-sm" title="Unggah file stempel / cap lokal">
+                <button type="button" tabindex="-1" onclick="document.getElementById('stampUploadInput').click()" class="inline-flex items-center gap-1 px-3 py-1 text-[11px] font-semibold text-slate-500 hover:text-indigo-600 border border-dashed border-slate-300 hover:border-indigo-400 rounded-lg bg-slate-50/70 hover:bg-indigo-50/70 transition cursor-pointer shadow-sm" title="Unggah file stempel / cap lokal">
                     <span class="text-sm font-bold leading-none">+</span>
                     <span>Upload Cap</span>
                 </button>
@@ -1128,7 +1341,7 @@
                 if (n < 1000000) return konversi(Math.floor(n / 1000)) + " Ribu " + konversi(n % 1000);
                 if (n < 1000000000) return konversi(Math.floor(n / 1000000)) + " Juta " + konversi(n % 1000000);
                 if (n < 1000000000000) return konversi(Math.floor(n / 1000000000)) + " Miliar " + konversi(n % 1000000000);
-                if (n < 1000000000000000) return konversi(Math.floor(n / 1000000000000)) + " Triliun " + konversi(n % 1000000000000);
+                if (n < 1000000000000000) return konversi(Math.floor(n / 1000000000)) + " Triliun " + konversi(n % 1000000000000);
                 return "";
             }
 
@@ -1668,14 +1881,14 @@
                     <td style="text-align:center; width:6%;">${idx + 1}</td>
                     <td>
                         <div class="item-name-print" contenteditable="true" data-placeholder="Klik untuk menulis nama barang..." onblur="updateItemValue(${item.id}, 'name', this.innerText, this)">${item.name || ''}</div>
-                        ${displayConfig.showColSpec ? `<div class="item-spec-print" contenteditable="true" data-placeholder="Tambah spesifikasi teknis / catatan jika ada..." onblur="updateItemValue(${item.id}, 'spec', this.innerText, this)">${item.spec || ''}</div>` : ''}
+                        ${displayConfig.showColSpec ? `<div class="item-spec-print" contenteditable="true" data-placeholder="Tambah spesifikasi teknis / catatan..." onblur="updateItemValue(${item.id}, 'spec', this.innerText, this)">${item.spec || ''}</div>` : ''}
                     </td>
                     ${displayConfig.showColMaterial ? `<td style="text-align:center; width:20%;" contenteditable="true" data-placeholder="Material/Grade" onblur="updateItemValue(${item.id}, 'material', this.innerText, this)">${item.material || ''}</td>` : ''}
                     <td style="text-align:center; font-weight:bold; width:12%;" contenteditable="true" data-placeholder="0" onkeydown="handleNumericKeyDown(event)" oninput="formatLiveCurrencyInput(this, val => updateItemQtyDirectLive(${item.id}, val))" onblur="updateItemQtyDirect(${item.id}, this.innerText, this)">${item.qty ? formatNumberThousand(item.qty) : ''}</td>
                     ${displayConfig.showColUnit ? `<td style="text-align:center; width:12%;" contenteditable="true" data-placeholder="Satuan" onblur="updateItemValue(${item.id}, 'unit', this.innerText, this)">${item.unit || ''}</td>` : ''}
                     <td style="text-align:center; width:16%; font-size:8.2pt;" contenteditable="true" data-placeholder="Kondisi barang...">Baik &amp; Lengkap</td>
                     <td class="no-print" style="text-align:center; width:4%;">
-                        <button type="button" onclick="removeItemRow(${item.id})" class="text-rose-500 hover:text-rose-700 font-bold" title="Hapus baris">&times;</button>
+                        <button type="button" tabindex="-1" onclick="removeItemRow(${item.id})" class="text-rose-500 hover:text-rose-700 font-bold" title="Hapus baris">&times;</button>
                     </td>
                 </tr>
                 `).join('');
@@ -1720,7 +1933,7 @@
                     <td style="text-align:right; width:16%; white-space:nowrap;" contenteditable="true" data-placeholder="0" onkeydown="handleNumericKeyDown(event)" oninput="formatLiveCurrencyInput(this, val => updateItemPriceDirectLive(${item.id}, val))" onblur="updateItemPriceDirect(${item.id}, this.innerText, this)">${p ? formatNumberThousand(p) : ''}</td>
                     <td id="line-total-${item.id}" style="text-align:right; font-weight:700; width:18%; white-space:nowrap;">${formatRupiah(lineTotal)}</td>
                     <td class="no-print" style="text-align:center; width:4%;">
-                        <button type="button" onclick="removeItemRow(${item.id})" class="text-rose-500 hover:text-rose-700 font-bold" title="Hapus baris">&times;</button>
+                        <button type="button" tabindex="-1" onclick="removeItemRow(${item.id})" class="text-rose-500 hover:text-rose-700 font-bold" title="Hapus baris">&times;</button>
                     </td>
                 </tr>`;
             }).join('');
@@ -1805,7 +2018,7 @@
                             <tr>
                                 <td style="font-weight:600;">
                                     <span contenteditable="true" data-placeholder="Nama Biaya..." onblur="updateFeeLabel(${fee.id}, this.innerText, this)">${fee.label}</span>
-                                    <button type="button" onclick="removeAdditionalFee(${fee.id})" class="no-print text-rose-500 hover:text-rose-700 font-bold ml-1.5" title="Hapus biaya">&times;</button>
+                                    <button type="button" tabindex="-1" onclick="removeAdditionalFee(${fee.id})" class="no-print text-rose-500 hover:text-rose-700 font-bold ml-1.5" title="Hapus biaya">&times;</button>
                                 </td>
                                 <td style="text-align:right;" contenteditable="true" data-placeholder="0" onkeydown="handleNumericKeyDown(event)" oninput="formatLiveCurrencyInput(this, val => updateFeeAmountDirectLive(${fee.id}, val))" onblur="updateFeeAmountDirect(${fee.id}, this.innerText)">${fee.amount ? formatNumberThousand(fee.amount) : '0'}</td>
                             </tr>`;
@@ -1828,7 +2041,7 @@
                             <tr>
                                 <td style="font-weight:600;">
                                     <span contenteditable="true" data-placeholder="Nama Biaya..." onblur="updateFeeLabel(${fee.id}, this.innerText, this)">${fee.label}</span>
-                                    <button type="button" onclick="removeAdditionalFee(${fee.id})" class="no-print text-rose-500 hover:text-rose-700 font-bold ml-1.5" title="Hapus biaya">&times;</button>
+                                    <button type="button" tabindex="-1" onclick="removeAdditionalFee(${fee.id})" class="no-print text-rose-500 hover:text-rose-700 font-bold ml-1.5" title="Hapus biaya">&times;</button>
                                 </td>
                                 <td style="text-align:right;" contenteditable="true" data-placeholder="0" onkeydown="handleNumericKeyDown(event)" oninput="formatLiveCurrencyInput(this, val => updateFeeAmountDirectLive(${fee.id}, val))" onblur="updateFeeAmountDirect(${fee.id}, this.innerText)">${fee.amount ? formatNumberThousand(fee.amount) : '0'}</td>
                             </tr>`;
@@ -1878,7 +2091,7 @@
             if (isSJ) {
                 return `
                 ${displayConfig.showCatatanSJ ? `
-                <div style="font-size:8.3pt; border:1px solid #1e293b; padding:5px 8px; margin-top:8px;">
+                <div style="font-size:8.3pt; border:1px solid #cbd5e1; padding:5px 8px; margin-top:8px;">
                     <strong>Catatan Penerimaan Barang:</strong> <span contenteditable="true" data-placeholder="Tulis catatan kondisi pemeriksaan barang..." onblur="handleDocDataEdit('sjCatatanPemeriksaan', this.innerText, this)">${docData.sjCatatanPemeriksaan || ''}</span>
                 </div>` : ''}
 
@@ -2176,6 +2389,7 @@
             }
             renderAdaptiveChecklists();
             renderDocumentView();
+            updateDocumentTitleAndFileName();
             showToast(`Format dokumen diubah ke: ${newType.toUpperCase()}`);
         }
 
@@ -2196,6 +2410,7 @@
                 const city = docData.sigCity || "Klaten";
                 docData.sigCityDate = clean ? `${city}, ${clean}` : '';
                 renderDocumentView();
+                updateDocumentTitleAndFileName();
                 return;
             }
 
@@ -2208,6 +2423,7 @@
 
             if (key === 'noDokumen' || key === 'noPO' || key === 'noSuratJalan' || key === 'clientName' || key === 'jatuhTempo' || key === 'noFakturPajak' || key === 'quotationValidity' || key === 'quotationPerihal' || key === 'sjDriverName' || key === 'sjPenerimaName') {
                 renderDocumentView();
+                updateDocumentTitleAndFileName();
             }
         }
 
@@ -2276,11 +2492,28 @@
             renderDocumentView();
         }
 
-        function addNewItemRow() {
+        function addNewItemRow(autoFocusFirstCell = false) {
             const nextId = items.length > 0 ? Math.max(...items.map(i => i.id)) + 1 : 1;
             items.push({ id: nextId, name: "", material: "", spec: "", qty: 1, unit: "", price: 0 });
             renderDocumentView();
-            showToast("Baris baru berhasil ditambahkan!");
+
+            if (autoFocusFirstCell) {
+                setTimeout(() => {
+                    const tableBody = document.querySelector('.doc-table tbody');
+                    if (tableBody) {
+                        const rows = tableBody.querySelectorAll('tr');
+                        const lastRow = rows[rows.length - 1];
+                        if (lastRow) {
+                            const firstInput = lastRow.querySelector('[contenteditable="true"]');
+                            if (firstInput) {
+                                focusEditableCell(firstInput, true);
+                            }
+                        }
+                    }
+                }, 20);
+            } else {
+                showToast("Baris baru berhasil ditambahkan!");
+            }
         }
 
         function removeItemRow(id) {
@@ -2332,7 +2565,8 @@
 
             renderAdaptiveChecklists();
             renderDocumentView();
-            showToast(`Preset diganti ke ${ent.name} (${taxScheme === 'non_ppn' ? 'Non-PPN' : 'DPP Nilai Lain'})`);
+            updateDocumentTitleAndFileName();
+            showToast(`Preset diganti ke ${ent.name}`);
         }
 
         function handleCustomStampUpload(event) {
@@ -2384,7 +2618,7 @@
             const fileInput = document.getElementById('logoUploadInput');
             if (fileInput) fileInput.value = "";
             renderDocumentView();
-            showToast(`Logo dikembalikan ke logo bawaan resmi ${PRESET_ENTITIES[currentEntityKey].name}`);
+            showToast(`Logo dikembalikan ke logo bawaan resmi`);
         }
 
         function toggleLogoDisplay() {
@@ -2401,24 +2635,24 @@
             if (isSJ) {
                 const rows = items.map((item, idx) => `
                 <tr>
-                    <td style="border:1px solid #000; text-align:center;">${idx + 1}</td>
-                    <td style="border:1px solid #000; font-weight:bold;">${item.name || '-'}<br><small style="font-weight:normal;">${item.spec || ''}</small></td>
-                    ${displayConfig.showColMaterial ? `<td style="border:1px solid #000; text-align:center;">${item.material || '-'}</td>` : ''}
-                    <td style="border:1px solid #000; text-align:center; font-weight:bold;">${formatNumberThousand(item.qty)}</td>
-                    <td style="border:1px solid #000; text-align:center;">${item.unit || '-'}</td>
-                    <td style="border:1px solid #000; text-align:center;">Baik &amp; Lengkap</td>
+                    <td style="border:1px solid #cbd5e1; text-align:center;">${idx + 1}</td>
+                    <td style="border:1px solid #cbd5e1; font-weight:bold;">${item.name || '-'}<br><small style="font-weight:normal; color:#475569;">${item.spec || ''}</small></td>
+                    ${displayConfig.showColMaterial ? `<td style="border:1px solid #cbd5e1; text-align:center;">${item.material || '-'}</td>` : ''}
+                    <td style="border:1px solid #cbd5e1; text-align:center; font-weight:bold;">${formatNumberThousand(item.qty)}</td>
+                    <td style="border:1px solid #cbd5e1; text-align:center;">${item.unit || '-'}</td>
+                    <td style="border:1px solid #cbd5e1; text-align:center;">Baik &amp; Lengkap</td>
                 </tr>`).join('');
 
                 tableHtml = `
-                <table style="width:100%; border-collapse:collapse; border:1px solid #000; font-family:Arial,sans-serif; font-size:10pt;">
+                <table style="width:100%; border-collapse:collapse; border:1px solid #cbd5e1; font-family:Arial,sans-serif; font-size:10pt;">
                     <thead>
-                        <tr style="background:#1e293b; color:#fff;">
-                            <th style="border:1px solid #000; padding:6px;">No</th>
-                            <th style="border:1px solid #000; padding:6px;">Deskripsi</th>
-                            ${displayConfig.showColMaterial ? `<th style="border:1px solid #000; padding:6px;">Material/Grade</th>` : ''}
-                            <th style="border:1px solid #000; padding:6px;">Qty</th>
-                            <th style="border:1px solid #000; padding:6px;">Satuan</th>
-                            <th style="border:1px solid #000; padding:6px;">Kondisi</th>
+                        <tr style="background:#f1f3f5; color:#1a1a1a;">
+                            <th style="border:1px solid #cbd5e1; padding:6px;">No</th>
+                            <th style="border:1px solid #cbd5e1; padding:6px;">Deskripsi</th>
+                            ${displayConfig.showColMaterial ? `<th style="border:1px solid #cbd5e1; padding:6px;">Material/Grade</th>` : ''}
+                            <th style="border:1px solid #cbd5e1; padding:6px;">Qty</th>
+                            <th style="border:1px solid #cbd5e1; padding:6px;">Satuan</th>
+                            <th style="border:1px solid #cbd5e1; padding:6px;">Kondisi</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>
@@ -2426,41 +2660,41 @@
             } else {
                 const rows = items.map((item, idx) => `
                 <tr>
-                    <td style="border:1px solid #000; text-align:center;">${idx + 1}</td>
-                    <td style="border:1px solid #000; font-weight:bold;">${item.name || '-'}<br><small style="font-weight:normal;">${item.spec || ''}</small></td>
-                    ${displayConfig.showColMaterial ? `<td style="border:1px solid #000; text-align:center;">${item.material || '-'}</td>` : ''}
-                    <td style="border:1px solid #000; text-align:center;">${formatNumberThousand(item.qty)}</td>
-                    <td style="border:1px solid #000; text-align:center;">${item.unit || '-'}</td>
-                    <td style="border:1px solid #000; text-align:right;">${formatRupiah(item.price)}</td>
-                    <td style="border:1px solid #000; text-align:right; font-weight:bold;">${formatRupiah(item.qty * item.price)}</td>
+                    <td style="border:1px solid #cbd5e1; text-align:center;">${idx + 1}</td>
+                    <td style="border:1px solid #cbd5e1; font-weight:bold;">${item.name || '-'}<br><small style="font-weight:normal; color:#475569;">${item.spec || ''}</small></td>
+                    ${displayConfig.showColMaterial ? `<td style="border:1px solid #cbd5e1; text-align:center;">${item.material || '-'}</td>` : ''}
+                    <td style="border:1px solid #cbd5e1; text-align:center;">${formatNumberThousand(item.qty)}</td>
+                    <td style="border:1px solid #cbd5e1; text-align:center;">${item.unit || '-'}</td>
+                    <td style="border:1px solid #cbd5e1; text-align:right;">${formatRupiah(item.price)}</td>
+                    <td style="border:1px solid #cbd5e1; text-align:right; font-weight:bold;">${formatRupiah(item.qty * item.price)}</td>
                 </tr>`).join('');
 
                 let feeRows = '';
                 additionalFees.forEach(fee => {
-                    feeRows += `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">${fee.label}:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(fee.amount)}</td></tr>`;
+                    feeRows += `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #cbd5e1; text-align:right;">${fee.label}:</td><td style="border:1px solid #cbd5e1; text-align:right;">${formatRupiah(fee.amount)}</td></tr>`;
                 });
 
                 tableHtml = `
-                <table style="width:100%; border-collapse:collapse; border:1px solid #000; font-family:Arial,sans-serif; font-size:10pt;">
+                <table style="width:100%; border-collapse:collapse; border:1px solid #cbd5e1; font-family:Arial,sans-serif; font-size:10pt;">
                     <thead>
-                        <tr style="background:#1e293b; color:#fff;">
-                            <th style="border:1px solid #000; padding:6px;">No</th>
-                            <th style="border:1px solid #000; padding:6px;">Deskripsi</th>
-                            ${displayConfig.showColMaterial ? `<th style="border:1px solid #000; padding:6px;">Material/Grade</th>` : ''}
-                            <th style="border:1px solid #000; padding:6px;">Qty</th>
-                            <th style="border:1px solid #000; padding:6px;">Satuan</th>
-                            <th style="border:1px solid #000; padding:6px;">Harga Satuan</th>
-                            <th style="border:1px solid #000; padding:6px;">Total Harga</th>
+                        <tr style="background:#f1f3f5; color:#1a1a1a;">
+                            <th style="border:1px solid #cbd5e1; padding:6px;">No</th>
+                            <th style="border:1px solid #cbd5e1; padding:6px;">Deskripsi</th>
+                            ${displayConfig.showColMaterial ? `<th style="border:1px solid #cbd5e1; padding:6px;">Material/Grade</th>` : ''}
+                            <th style="border:1px solid #cbd5e1; padding:6px;">Qty</th>
+                            <th style="border:1px solid #cbd5e1; padding:6px;">Satuan</th>
+                            <th style="border:1px solid #cbd5e1; padding:6px;">Harga Satuan</th>
+                            <th style="border:1px solid #cbd5e1; padding:6px;">Total Harga</th>
                         </tr>
                     </thead>
                     <tbody>
                         ${rows}
-                        ${additionalFees.length > 0 ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right; font-weight:bold;">Subtotal Barang:</td><td style="border:1px solid #000; text-align:right; font-weight:bold;">${formatRupiah(calc.rawItemsSubtotal)}</td></tr>` : ''}
+                        ${additionalFees.length > 0 ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #cbd5e1; text-align:right; font-weight:bold;">Subtotal Barang:</td><td style="border:1px solid #cbd5e1; text-align:right; font-weight:bold;">${formatRupiah(calc.rawItemsSubtotal)}</td></tr>` : ''}
                         ${feeRows}
-                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">Total:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.subtotalAfterFees)}</td></tr>` : ''}
-                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">DPP:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.dpp)}</td></tr>` : ''}
-                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">PPN (12%):</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.ppn)}</td></tr>` : ''}
-                        <tr style="background:#f1f5f9; font-weight:bold;"><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #000; text-align:right;">GRAND TOTAL:</td><td style="border:1px solid #000; text-align:right;">${formatRupiah(calc.grandTotal)}</td></tr>
+                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #cbd5e1; text-align:right;">Total:</td><td style="border:1px solid #cbd5e1; text-align:right;">${formatRupiah(calc.subtotalAfterFees)}</td></tr>` : ''}
+                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #cbd5e1; text-align:right;">DPP:</td><td style="border:1px solid #cbd5e1; text-align:right;">${formatRupiah(calc.dpp)}</td></tr>` : ''}
+                        ${taxScheme !== 'non_ppn' ? `<tr><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #cbd5e1; text-align:right;">PPN (12%):</td><td style="border:1px solid #cbd5e1; text-align:right;">${formatRupiah(calc.ppn)}</td></tr>` : ''}
+                        <tr style="background:#e9ecef; font-weight:bold; color:#1a1a1a;"><td colspan="${displayConfig.showColMaterial ? '6' : '5'}" style="border:1px solid #cbd5e1; text-align:right;">GRAND TOTAL:</td><td style="border:1px solid #cbd5e1; text-align:right;">${formatRupiah(calc.grandTotal)}</td></tr>
                     </tbody>
                 </table>`;
             }
@@ -2472,7 +2706,7 @@
                     const htmlBlob = new Blob([fullHtml], { type: 'text/html' });
                     const textBlob = new Blob([tableHtml.replace(/<[^>]+>/g, ' ')], { type: 'text/plain' });
                     await navigator.clipboard.write([new ClipboardItem({ 'text/html': htmlBlob, 'text/plain': textBlob })]);
-                    showToast("📋 Tabel rapi berhasil disalin! Tinggal Paste (Ctrl+V) di Microsoft Word atau Google Docs.");
+                    showToast("📋 Tabel rapi berhasil disalin! Tinggal Paste di Word / Excel.");
                     return;
                 }
             } catch (err) {}
@@ -2489,7 +2723,6 @@
         function resetAllToBlank() {
             const today = getFormattedIndonesianDate();
             const city = "Klaten";
-
             const ent = PRESET_ENTITIES[currentEntityKey];
 
             docData.clientName = "";
@@ -2538,7 +2771,8 @@
 
             renderAdaptiveChecklists();
             renderDocumentView();
-            showToast("Dokumen telah disiapkan dengan tanggal hari ini & nomor otomatis.");
+            updateDocumentTitleAndFileName();
+            showToast("Dokumen telah dikosongkan dengan nomor urut baru.");
         }
 
         function fillPdfExactData() {
@@ -2591,6 +2825,7 @@
 
             renderAdaptiveChecklists();
             renderDocumentView();
+            updateDocumentTitleAndFileName();
             showToast("Contoh data PT Nindya Karya dimuat!");
         }
 
@@ -2598,4 +2833,5 @@
             resetAllToBlank();
         };
     </script>
-</body></html>
+</body>
+</html>
