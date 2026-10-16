@@ -1215,6 +1215,9 @@
             sjPenerimaName: "",
             sjPenerimaNote: "",
             sjCatatanPemeriksaan: "",
+            sjArmada: "",
+            sjNopol: "",
+            sjStatus: "",
 
             kwitansiNo: generateDocNumber('kwitansi', 'sahala', 1),
             kwitansiTerimaDari: "",
@@ -1227,9 +1230,9 @@
             kwitansiNominalManual: 0
         };
 
-        /* Default awal kolom Satuan adalah "Piece" */
+        /* Default awal kolom Satuan adalah "Piece" dan Kondisi adalah "Lengkap" */
         let items = [
-            { id: 1, name: "", material: "", spec: "", qty: 0, unit: "Piece", price: 0 }
+            { id: 1, name: "", material: "", spec: "", qty: 0, unit: "Piece", price: 0, kondisi: "Lengkap" }
         ];
 
         let additionalFees = [];
@@ -1509,11 +1512,27 @@
             return fileName;
         }
 
+        /* Sinkronisasi seluruh input aktif sebelum masuk mode cetak / PDF */
+        function syncActiveElementBeforePrint() {
+            const activeEl = document.activeElement;
+            if (activeEl && activeEl.getAttribute('contenteditable') === 'true') {
+                const tableCell = activeEl.closest('.doc-table tbody [contenteditable="true"]');
+                if (tableCell) {
+                    syncTableCellToState(tableCell);
+                } else {
+                    activeEl.blur();
+                }
+            }
+        }
+
         window.addEventListener('beforeprint', function() {
+            syncActiveElementBeforePrint();
             updateDocumentTitleAndFileName();
         });
 
         function printDocument() {
+            syncActiveElementBeforePrint();
+            renderDocumentView();
             const fileName = updateDocumentTitleAndFileName();
             showToast(`Mempersiapkan PDF: ${fileName}`);
             setTimeout(() => {
@@ -2041,29 +2060,29 @@
                     <tr>
                         <td class="tm-label">No. Surat Jalan</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor Surat Jalan..." onblur="handleDocDataEdit('noSuratJalan', this.innerText, this)">${docData.noSuratJalan || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor Surat Jalan..." oninput="handleDocDataLiveInput('noSuratJalan', this.innerText, this)" onblur="handleDocDataEdit('noSuratJalan', this.innerText, this)">${docData.noSuratJalan || ''}</td>
                     </tr>
                     <tr>
                         <td class="tm-label">Tanggal Kirim</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal kirim..." onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal kirim..." oninput="handleDocDataLiveInput('tglDokumen', this.innerText, this)" onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
                     </tr>
-                    <tr class="${!hasPo ? 'print-hide-empty' : ''}">
+                    <tr data-conditional-print="true" class="${!hasPo ? 'print-hide-empty' : ''}">
                         <td class="tm-label">No. PO Pemesan</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor PO pemesan..." onblur="handleDocDataEdit('noPO', this.innerText, this)">${docData.noPO || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor PO pemesan..." oninput="handleDocDataLiveInput('noPO', this.innerText, this)" onblur="handleDocDataEdit('noPO', this.innerText, this)">${docData.noPO || ''}</td>
                     </tr>`;
                 } else if (effectiveType === 'kwitansi') {
                     metaRows = `
                     <tr>
                         <td class="tm-label">No. Kwitansi</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor kwitansi..." onblur="handleDocDataEdit('kwitansiNo', this.innerText, this)">${docData.kwitansiNo || docData.noDokumen || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor kwitansi..." oninput="handleDocDataLiveInput('kwitansiNo', this.innerText, this)" onblur="handleDocDataEdit('kwitansiNo', this.innerText, this)">${docData.kwitansiNo || docData.noDokumen || ''}</td>
                     </tr>
                     <tr>
                         <td class="tm-label">Tanggal Bayar</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal bayar..." onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal bayar..." oninput="handleDocDataLiveInput('tglDokumen', this.innerText, this)" onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
                     </tr>`;
                 } else if (effectiveType === 'quotation') {
                     const hasValidity = Boolean(docData.quotationValidity && docData.quotationValidity.trim());
@@ -2072,22 +2091,22 @@
                     <tr>
                         <td class="tm-label">No. Penawaran</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor surat penawaran..." onblur="handleDocDataEdit('quotationNo', this.innerText, this)">${docData.quotationNo || docData.noDokumen || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor surat penawaran..." oninput="handleDocDataLiveInput('quotationNo', this.innerText, this)" onblur="handleDocDataEdit('quotationNo', this.innerText, this)">${docData.quotationNo || docData.noDokumen || ''}</td>
                     </tr>
                     <tr>
                         <td class="tm-label">Tanggal</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal penawaran..." onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal penawaran..." oninput="handleDocDataLiveInput('tglDokumen', this.innerText, this)" onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
                     </tr>
-                    <tr class="${!hasValidity ? 'print-hide-empty' : ''}">
+                    <tr data-conditional-print="true" class="${!hasValidity ? 'print-hide-empty' : ''}">
                         <td class="tm-label">Masa Berlaku</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Contoh: 14 Hari..." onblur="handleDocDataEdit('quotationValidity', this.innerText, this)">${docData.quotationValidity || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Contoh: 14 Hari..." oninput="handleDocDataLiveInput('quotationValidity', this.innerText, this)" onblur="handleDocDataEdit('quotationValidity', this.innerText, this)">${docData.quotationValidity || ''}</td>
                     </tr>
-                    <tr class="${!hasPerihal ? 'print-hide-empty' : ''}">
+                    <tr data-conditional-print="true" class="${!hasPerihal ? 'print-hide-empty' : ''}">
                         <td class="tm-label">Perihal</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Perihal penawaran..." onblur="handleDocDataEdit('quotationPerihal', this.innerText, this)">${docData.quotationPerihal || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Perihal penawaran..." oninput="handleDocDataLiveInput('quotationPerihal', this.innerText, this)" onblur="handleDocDataEdit('quotationPerihal', this.innerText, this)">${docData.quotationPerihal || ''}</td>
                     </tr>`;
                 } else {
                     const hasTempo = Boolean(docData.jatuhTempo && docData.jatuhTempo.trim());
@@ -2096,29 +2115,29 @@
                     <tr>
                         <td class="tm-label">${effectiveType === 'po' ? 'No. PO' : 'No. Invoice'}</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor dokumen..." onblur="handleDocDataEdit('noDokumen', this.innerText, this)">${docData.noDokumen || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor dokumen..." oninput="handleDocDataLiveInput('noDokumen', this.innerText, this)" onblur="handleDocDataEdit('noDokumen', this.innerText, this)">${docData.noDokumen || ''}</td>
                     </tr>
                     <tr>
                         <td class="tm-label">Tanggal</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal invoice..." onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal invoice..." oninput="handleDocDataLiveInput('tglDokumen', this.innerText, this)" onblur="handleDocDataEdit('tglDokumen', this.innerText, this)">${docData.tglDokumen || ''}</td>
                     </tr>
-                    <tr class="${!hasTempo ? 'print-hide-empty' : ''}">
+                    <tr data-conditional-print="true" class="${!hasTempo ? 'print-hide-empty' : ''}">
                         <td class="tm-label">Jatuh Tempo</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal jatuh tempo..." onblur="handleDocDataEdit('jatuhTempo', this.innerText, this)">${docData.jatuhTempo || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Tanggal jatuh tempo..." oninput="handleDocDataLiveInput('jatuhTempo', this.innerText, this)" onblur="handleDocDataEdit('jatuhTempo', this.innerText, this)">${docData.jatuhTempo || ''}</td>
                     </tr>
-                    <tr class="${!hasPo ? 'print-hide-empty' : ''}">
+                    <tr data-conditional-print="true" class="${!hasPo ? 'print-hide-empty' : ''}">
                         <td class="tm-label">PO Pemesan</td>
                         <td class="tm-colon">:</td>
-                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor PO pemesan..." onblur="handleDocDataEdit('noPO', this.innerText, this)">${docData.noPO || ''}</td>
+                        <td class="tm-val" contenteditable="true" data-placeholder="Nomor PO pemesan..." oninput="handleDocDataLiveInput('noPO', this.innerText, this)" onblur="handleDocDataEdit('noPO', this.innerText, this)">${docData.noPO || ''}</td>
                     </tr>`;
                 }
             }
 
             const rightHtml = `
             <div class="pdf-doc-right">
-                <div class="pdf-doc-big-title" contenteditable="true" data-placeholder="JUDUL DOKUMEN" onblur="handleDocDataEdit('docTitle', this.innerText, this)">${title}</div>
+                <div class="pdf-doc-big-title" contenteditable="true" data-placeholder="JUDUL DOKUMEN" oninput="handleDocDataLiveInput('docTitle', this.innerText, this)" onblur="handleDocDataEdit('docTitle', this.innerText, this)">${title}</div>
                 ${metaRows ? `<table class="pdf-top-meta-table"><tbody>${metaRows}</tbody></table>` : ''}
             </div>`;
 
@@ -2130,10 +2149,10 @@
         }
 
         function buildMidInfoGridHTML() {
-            if (!displayConfig.showBillTo && !displayConfig.showTxInfo) return '';
-
             const isSJ = currentDocType === 'sj';
             const isQuotation = currentDocType === 'quotation';
+
+            if (!displayConfig.showBillTo && !displayConfig.showTxInfo && !isSJ) return '';
 
             let billHeader = 'TAGIHAN KEPADA (BILL TO):';
             if (isSJ) {
@@ -2151,10 +2170,10 @@
                 <div class="pdf-info-card">
                     <div class="pdf-info-card-header">${billHeader}</div>
                     <div class="pdf-info-card-body">
-                        <div style="font-weight:700; font-size:9.5pt;" contenteditable="true" data-placeholder="Klik untuk mengisi Nama Klien / Perusahaan..." onblur="handleDocDataEdit('clientName', this.innerText, this)">${docData.clientName || ''}</div>
-                        ${displayConfig.showAttn ? `<div style="font-weight:600; margin-top:2px;" contenteditable="true" data-placeholder="Attn: Bpk. / Ibu (Bagian Pembelian)..." onblur="handleDocDataEdit('clientAttn', this.innerText, this)">${docData.clientAttn || ''}</div>` : ''}
-                        <div style="margin-top:2px; white-space:pre-line;" contenteditable="true" data-placeholder="Alamat lengkap klien / tujuan pengiriman..." onblur="handleDocDataEdit('clientAddress', this.innerText, this)">${docData.clientAddress || ''}</div>
-                        ${(displayConfig.showProjectLoc) ? `<div class="${!hasLoc ? 'print-hide-empty' : ''}" style="margin-top:3px; font-style:italic;"><strong>Lokasi Proyek / Kirim:</strong> <span contenteditable="true" data-placeholder="Contoh: Franco Surabaya / Loco Pabrik..." onblur="handleDocDataEdit('clientProjectLoc', this.innerText, this)">${docData.clientProjectLoc || ''}</span></div>` : ''}
+                        <div style="font-weight:700; font-size:9.5pt;" contenteditable="true" data-placeholder="Klik untuk mengisi Nama Klien / Perusahaan..." oninput="handleDocDataLiveInput('clientName', this.innerText, this)" onblur="handleDocDataEdit('clientName', this.innerText, this)">${docData.clientName || ''}</div>
+                        ${displayConfig.showAttn ? `<div style="font-weight:600; margin-top:2px;" contenteditable="true" data-placeholder="Attn: Bpk. / Ibu (Bagian Pembelian)..." oninput="handleDocDataLiveInput('clientAttn', this.innerText, this)" onblur="handleDocDataEdit('clientAttn', this.innerText, this)">${docData.clientAttn || ''}</div>` : ''}
+                        <div style="margin-top:2px; white-space:pre-line;" contenteditable="true" data-placeholder="Alamat lengkap klien / tujuan pengiriman..." oninput="handleDocDataLiveInput('clientAddress', this.innerText, this)" onblur="handleDocDataEdit('clientAddress', this.innerText, this)">${docData.clientAddress || ''}</div>
+                        ${(displayConfig.showProjectLoc) ? `<div data-hide-able="true" data-conditional-print="true" class="${!hasLoc ? 'print-hide-empty' : ''}" style="margin-top:3px; font-style:italic;"><strong>Lokasi Proyek / Kirim:</strong> <span contenteditable="true" data-placeholder="Contoh: Franco Surabaya / Loco Pabrik..." oninput="handleDocDataLiveInput('clientProjectLoc', this.innerText, this)" onblur="handleDocDataEdit('clientProjectLoc', this.innerText, this)">${docData.clientProjectLoc || ''}</span></div>` : ''}
                     </div>
                 </div>`;
             }
@@ -2171,20 +2190,20 @@
                     <div class="pdf-info-card-body">
                         <table class="pdf-tx-table">
                             <tbody>
-                                <tr class="${!hasTerms ? 'print-hide-empty' : ''}">
+                                <tr data-conditional-print="true" class="${!hasTerms ? 'print-hide-empty' : ''}">
                                     <td class="tx-label">Syarat Bayar</td>
                                     <td class="tx-colon">:</td>
-                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: DP 30%, Pelunasan..." onblur="handleDocDataEdit('quotationPaymentTerms', this.innerText, this)">${docData.quotationPaymentTerms || docData.syaratBayar || ''}</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: DP 30%, Pelunasan..." oninput="handleDocDataLiveInput('quotationPaymentTerms', this.innerText, this)" onblur="handleDocDataEdit('quotationPaymentTerms', this.innerText, this)">${docData.quotationPaymentTerms || docData.syaratBayar || ''}</td>
                                 </tr>
-                                <tr class="${!hasLead ? 'print-hide-empty' : ''}">
+                                <tr data-conditional-print="true" class="${!hasLead ? 'print-hide-empty' : ''}">
                                     <td class="tx-label">Waktu Kirim</td>
                                     <td class="tx-colon">:</td>
-                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: 14 hari kerja..." onblur="handleDocDataEdit('quotationLeadTime', this.innerText, this)">${docData.quotationLeadTime || ''}</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: 14 hari kerja..." oninput="handleDocDataLiveInput('quotationLeadTime', this.innerText, this)" onblur="handleDocDataEdit('quotationLeadTime', this.innerText, this)">${docData.quotationLeadTime || ''}</td>
                                 </tr>
-                                <tr class="${!hasLoc ? 'print-hide-empty' : ''}">
+                                <tr data-conditional-print="true" class="${!hasLoc ? 'print-hide-empty' : ''}">
                                     <td class="tx-label">Ketentuan Kirim</td>
                                     <td class="tx-colon">:</td>
-                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: Franco Surabaya..." onblur="handleDocDataEdit('clientProjectLoc', this.innerText, this)">${docData.clientProjectLoc || ''}</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: Franco Surabaya..." oninput="handleDocDataLiveInput('clientProjectLoc', this.innerText, this)" onblur="handleDocDataEdit('clientProjectLoc', this.innerText, this)">${docData.clientProjectLoc || ''}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -2201,28 +2220,31 @@
                     <div class="pdf-info-card-body">
                         <table class="pdf-tx-table">
                             <tbody>
-                                <tr class="${!hasSyarat ? 'print-hide-empty' : ''}">
+                                <tr data-conditional-print="true" class="${!hasSyarat ? 'print-hide-empty' : ''}">
                                     <td class="tx-label">Syarat</td>
                                     <td class="tx-colon">:</td>
-                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: Tempo 30 Hari (Net 30)..." onblur="handleDocDataEdit('syaratBayar', this.innerText, this)">${docData.syaratBayar || ''}</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Contoh: Tempo 30 Hari (Net 30)..." oninput="handleDocDataLiveInput('syaratBayar', this.innerText, this)" onblur="handleDocDataEdit('syaratBayar', this.innerText, this)">${docData.syaratBayar || ''}</td>
                                 </tr>
-                                <tr class="${!hasFaktur ? 'print-hide-empty' : ''}">
+                                <tr data-conditional-print="true" class="${!hasFaktur ? 'print-hide-empty' : ''}">
                                     <td class="tx-label">No. Faktur</td>
                                     <td class="tx-colon">:</td>
-                                    <td class="tx-val" contenteditable="true" data-placeholder="Nomor faktur pajak..." onblur="handleDocDataEdit('noFakturPajak', this.innerText, this)">${docData.noFakturPajak || ''}</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Nomor faktur pajak..." oninput="handleDocDataLiveInput('noFakturPajak', this.innerText, this)" onblur="handleDocDataEdit('noFakturPajak', this.innerText, this)">${docData.noFakturPajak || ''}</td>
                                 </tr>
-                                <tr class="${!hasSj ? 'print-hide-empty' : ''}">
+                                <tr data-conditional-print="true" class="${!hasSj ? 'print-hide-empty' : ''}">
                                     <td class="tx-label">No. Surat Jalan</td>
                                     <td class="tx-colon">:</td>
-                                    <td class="tx-val" contenteditable="true" data-placeholder="Nomor surat jalan..." onblur="handleDocDataEdit('noSuratJalan', this.innerText, this)">${docData.noSuratJalan || ''}</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Nomor surat jalan..." oninput="handleDocDataLiveInput('noSuratJalan', this.innerText, this)" onblur="handleDocDataEdit('noSuratJalan', this.innerText, this)">${docData.noSuratJalan || ''}</td>
                                 </tr>
                             </tbody>
                         </table>
                     </div>
                 </div>`;
             } else if (isSJ) {
-                const hasArmada = Boolean(docData.sjArmada && docData.sjArmada.trim());
-                const hasNopol = Boolean(docData.sjNopol && docData.sjNopol.trim());
+                /* Khusus Surat Jalan / DO:
+                 * Baris "Armada / Mobil" dan "No. Polisi (Nopol)" WAJIB selalu tampil saat cetak/PDF (tanpa class print-hide-empty)
+                 * agar bisa ditulis manual dengan bolpoin di lapangan apabila dikosongkan.
+                 * Baris "Status Kirim" otomatis muncul saat diisi oleh pengguna.
+                 */
                 const hasStatus = Boolean(docData.sjStatus && docData.sjStatus.trim());
 
                 txHtml = `
@@ -2231,20 +2253,20 @@
                     <div class="pdf-info-card-body">
                         <table class="pdf-tx-table">
                             <tbody>
-                                <tr class="${!hasArmada ? 'print-hide-empty' : ''}">
+                                <tr>
                                     <td class="tx-label">Armada / Mobil</td>
                                     <td class="tx-colon">:</td>
-                                    <td class="tx-val" contenteditable="true" data-placeholder="Jenis kendaraan / armada..." onblur="handleDocDataEdit('sjArmada', this.innerText, this)">${docData.sjArmada || ''}</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Jenis kendaraan / armada..." oninput="handleDocDataLiveInput('sjArmada', this.innerText, this)" onblur="handleDocDataEdit('sjArmada', this.innerText, this)">${docData.sjArmada || ''}</td>
                                 </tr>
-                                <tr class="${!hasNopol ? 'print-hide-empty' : ''}">
+                                <tr>
                                     <td class="tx-label">No. Polisi (Nopol)</td>
                                     <td class="tx-colon">:</td>
-                                    <td class="tx-val" contenteditable="true" data-placeholder="Nomor plat polisi..." onblur="handleDocDataEdit('sjNopol', this.innerText, this)">${docData.sjNopol || ''}</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Nomor plat polisi..." oninput="handleDocDataLiveInput('sjNopol', this.innerText, this)" onblur="handleDocDataEdit('sjNopol', this.innerText, this)">${docData.sjNopol || ''}</td>
                                 </tr>
-                                <tr class="${!hasStatus ? 'print-hide-empty' : ''}">
+                                <tr data-conditional-print="true" class="${!hasStatus ? 'print-hide-empty' : ''}">
                                     <td class="tx-label">Status Kirim</td>
                                     <td class="tx-colon">:</td>
-                                    <td class="tx-val" contenteditable="true" data-placeholder="Status pengiriman..." onblur="handleDocDataEdit('sjStatus', this.innerText, this)">${docData.sjStatus || ''}</td>
+                                    <td class="tx-val" contenteditable="true" data-placeholder="Status pengiriman..." oninput="handleDocDataLiveInput('sjStatus', this.innerText, this)" onblur="handleDocDataEdit('sjStatus', this.innerText, this)">${docData.sjStatus || ''}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -2273,7 +2295,7 @@
                     ${displayConfig.showColMaterial ? `<td style="text-align:center; width:20%;" data-col="material" contenteditable="true" data-placeholder="Material/Grade" oninput="updateItemValueLive(${item.id}, 'material', this.innerText)" onblur="updateItemValue(${item.id}, 'material', this.innerText, this)">${item.material || ''}</td>` : ''}
                     <td style="text-align:center; font-weight:bold; width:12%;" data-col="qty" contenteditable="true" data-placeholder="0" oninput="formatLiveCurrencyInput(this, val => updateItemQtyDirectLive(${item.id}, val))" onblur="updateItemQtyDirect(${item.id}, this.innerText, this)">${item.qty ? formatNumberThousand(item.qty) : ''}</td>
                     ${displayConfig.showColUnit ? `<td style="text-align:center; width:12%;" data-col="unit" contenteditable="true" data-placeholder="Piece" oninput="updateItemValueLive(${item.id}, 'unit', this.innerText)" onblur="updateItemValue(${item.id}, 'unit', this.innerText, this)">${item.unit || ''}</td>` : ''}
-                    <td style="text-align:center; width:16%; font-size:8.2pt;" data-col="kondisi" contenteditable="true" data-placeholder="Kondisi barang...">${item.kondisi || 'Baik & Lengkap'}</td>
+                    <td style="text-align:center; width:16%; font-size:8.2pt;" data-col="kondisi" contenteditable="true" data-placeholder="Lengkap" oninput="updateItemValueLive(${item.id}, 'kondisi', this.innerText)" onblur="updateItemValue(${item.id}, 'kondisi', this.innerText, this)">${item.kondisi !== undefined && item.kondisi !== '' ? item.kondisi : 'Lengkap'}</td>
                     <td class="no-print" style="text-align:center; width:4%;">
                         <button type="button" tabindex="-1" onclick="removeItemRow(${item.id})" class="text-rose-500 hover:text-rose-700 font-bold" title="Hapus baris">&times;</button>
                     </td>
@@ -2597,12 +2619,12 @@
                         <tr>
                             <td class="kw-label">Untuk Pembayaran</td>
                             <td class="kw-colon">:</td>
-                            <td class="kw-val" contenteditable="true" data-placeholder="Pembayaran pengadaan barang / jasa..." onblur="handleDocDataEdit('kwitansiUntukBayar', this.innerText, this)">${docData.kwitansiUntukBayar || ''}</td>
+                            <td class="kw-val" contenteditable="true" data-placeholder="Pembayaran pengadaan barang / jasa..." oninput="handleDocDataLiveInput('kwitansiUntukBayar', this.innerText, this)" onblur="handleDocDataEdit('kwitansiUntukBayar', this.innerText, this)">${docData.kwitansiUntukBayar || ''}</td>
                         </tr>
-                        <tr class="${!hasRef ? 'print-hide-empty' : ''}">
+                        <tr data-conditional-print="true" class="${!hasRef ? 'print-hide-empty' : ''}">
                             <td class="kw-label">Referensi Tagihan</td>
                             <td class="kw-colon">:</td>
-                            <td class="kw-val" style="white-space:pre-line;" contenteditable="true" data-placeholder="Tulis referensi tagihan (opsional, misal: No. Inv, No. PO, No. SJ)..." onblur="handleKwitansiRefEdit(this)">${docData.kwitansiReferensi || ''}</td>
+                            <td class="kw-val" style="white-space:pre-line;" contenteditable="true" data-placeholder="Tulis referensi tagihan (opsional, misal: No. Inv, No. PO, No. SJ)..." oninput="handleDocDataLiveInput('kwitansiReferensi', this.innerText, this)" onblur="handleKwitansiRefEdit(this)">${docData.kwitansiReferensi || ''}</td>
                         </tr>
                     </table>
 
@@ -2811,12 +2833,44 @@
             showToast("Skema pajak berhasil diperbarui.");
         }
 
+        /* Live input handler: menyimpan state docData secara real-time & membuka/menyembunyikan class print-hide-empty */
+        function handleDocDataLiveInput(key, value, el = null) {
+            const clean = (value || '').replace(/\u00a0/g, ' ').trim();
+            docData[key] = clean;
+
+            if (el) {
+                const conditionalParent = el.closest('[data-conditional-print="true"]');
+                if (conditionalParent) {
+                    if (clean.length > 0) {
+                        conditionalParent.classList.remove('print-hide-empty');
+                    } else {
+                        conditionalParent.classList.add('print-hide-empty');
+                    }
+                }
+            }
+
+            if (key === 'noDokumen' || key === 'noPO' || key === 'noSuratJalan' || key === 'clientName' || key === 'tglDokumen' || key === 'kwitansiNo' || key === 'quotationNo') {
+                updateDocumentTitleAndFileName();
+            }
+        }
+
         function handleDocDataEdit(key, value, el = null) {
             if (isNavigatingTable) return;
             const clean = (value || '').replace(/\u00a0/g, ' ').trim();
             docData[key] = clean;
             if (!clean && el) {
                 el.innerHTML = '';
+            }
+
+            if (el) {
+                const conditionalParent = el.closest('[data-conditional-print="true"]');
+                if (conditionalParent) {
+                    if (clean.length > 0) {
+                        conditionalParent.classList.remove('print-hide-empty');
+                    } else {
+                        conditionalParent.classList.add('print-hide-empty');
+                    }
+                }
             }
 
             if (key === 'tglDokumen') {
@@ -2834,7 +2888,14 @@
                 }
             }
 
-            if (key === 'noDokumen' || key === 'noPO' || key === 'noSuratJalan' || key === 'clientName' || key === 'jatuhTempo' || key === 'noFakturPajak' || key === 'quotationValidity' || key === 'quotationPerihal' || key === 'sjDriverName' || key === 'sjPenerimaName') {
+            const keysRequiringRender = [
+                'noDokumen', 'noPO', 'noSuratJalan', 'clientName', 'clientProjectLoc',
+                'jatuhTempo', 'syaratBayar', 'noFakturPajak',
+                'quotationValidity', 'quotationPerihal', 'quotationPaymentTerms', 'quotationLeadTime',
+                'sjArmada', 'sjNopol', 'sjStatus', 'sjDriverName', 'sjPenerimaName'
+            ];
+
+            if (keysRequiringRender.includes(key)) {
                 renderDocumentView();
                 updateDocumentTitleAndFileName();
             }
@@ -2932,7 +2993,8 @@
                 spec: "",
                 qty: 0,
                 unit: inheritedUnit,
-                price: 0
+                price: 0,
+                kondisi: "Lengkap"
             });
 
             isNavigatingTable = true;
@@ -3088,7 +3150,7 @@
                     ${displayConfig.showColMaterial ? `<td style="border:1px solid #cbd5e1; text-align:center;">${item.material || '-'}</td>` : ''}
                     <td style="border:1px solid #cbd5e1; text-align:center; font-weight:bold;">${formatNumberThousand(item.qty)}</td>
                     <td style="border:1px solid #cbd5e1; text-align:center;">${item.unit || '-'}</td>
-                    <td style="border:1px solid #cbd5e1; text-align:center;">Baik &amp; Lengkap</td>
+                    <td style="border:1px solid #cbd5e1; text-align:center;">${item.kondisi || 'Lengkap'}</td>
                 </tr>`).join('');
 
                 tableHtml = `
@@ -3198,6 +3260,16 @@
             docData.sigSignerName = ent.signerName;
             docData.sigSignerRole = ent.signerRole;
 
+            docData.sjPengirimJabatan = "";
+            docData.sjDriverName = "";
+            docData.sjDriverNote = "";
+            docData.sjPenerimaName = "";
+            docData.sjPenerimaNote = "";
+            docData.sjCatatanPemeriksaan = "";
+            docData.sjArmada = "";
+            docData.sjNopol = "";
+            docData.sjStatus = "";
+
             docData.kwitansiNo = generateDocNumber('kwitansi', currentEntityKey);
             docData.kwitansiTerimaDari = "";
             docData.kwitansiUntukBayar = "";
@@ -3216,9 +3288,9 @@
             displayConfig.showBillTo = true;
             displayConfig.showTxInfo = (currentEntityKey !== 'arba');
 
-            /* Default Satuan adalah "Piece" */
+            /* Default Satuan adalah "Piece" dan Kondisi adalah "Lengkap" */
             items = [
-                { id: 1, name: "", material: "", spec: "", qty: 0, unit: "Piece", price: 0 }
+                { id: 1, name: "", material: "", spec: "", qty: 0, unit: "Piece", price: 0, kondisi: "Lengkap" }
             ];
 
             additionalFees = [];
@@ -3271,8 +3343,8 @@
             docData.kwitansiNominalManual = 0;
 
             items = [
-                { id: 1, name: "Concrete Canvas", material: "Cast Iron FC250", spec: "", qty: 650, unit: "Kg", price: 520000 },
-                { id: 2, name: "Asesoris Concrete Canvas dan Pemasangan", material: "", spec: "", qty: 650, unit: "Piece", price: 100000 }
+                { id: 1, name: "Concrete Canvas", material: "Cast Iron FC250", spec: "", qty: 650, unit: "Kg", price: 520000, kondisi: "Lengkap" },
+                { id: 2, name: "Asesoris Concrete Canvas dan Pemasangan", material: "", spec: "", qty: 650, unit: "Piece", price: 100000, kondisi: "Lengkap" }
             ];
 
             additionalFees = [];
